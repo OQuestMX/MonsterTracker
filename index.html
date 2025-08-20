@@ -1,1111 +1,575 @@
-import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
-
-// ---------------------------------------------
-// Encounter Toolkit
-// Scope: Redesigned expand/collapse button for abilities.
-// Stamina = Health. Click units to expand full attacks and traits.
-// ---------------------------------------------
-
-export default function App() {
-  return <EncounterStudio />;
-}
-
-// ---------- Types ----------
-/**
- * @typedef Monster
- * @property {string} id
- * @property {string} name
- * @property {number} level
- * @property {"minion"|"horde"|"platoon"|"elite"|"leader"|"solo"} organization
- * @property {"ambusher"|"artillery"|"brute"|"controller"|"defender"|"harrier"|"hexer"|"mount"|"support"|"none"} role
- * @property {number} ev
- * @property {number} stamina // Health
- * @property {number} freeStrike
- * @property {string} size
- * @property {number} speed
- * @property {string[]} keywords
- * @property {string} source
- * @property {boolean} [minion]
- * @property {number} [minionPerSquad]
- * @property {{name:string,text:string}[]} [traits]
- * @property {string[]} [resistances]
- * @property {string[]} [weaknesses]
- * @property {string[]} [immunities]
- * @property {Ability[]} [abilities]
- * @property {{might:number,agility:number,reason:number,intuition:number,presence:number}} [attributes]
- * @property {{movement?:string, withCaptain?:string}} [notes]
- */
-
-/**
- * @typedef Ability
- * @property {string} id
- * @property {"signature"|"action"|"maneuver"|"triggered"} type
- * @property {string} name
- * @property {"main"|"maneuver"|"none"|"triggered"} action
- * @property {string} [trigger]
- * @property {string} [distance]
- * @property {string} [area]
- * @property {string[]} [keywords]
- * @property {string} [damage]
- * @property {string} [onHit]
- * @property {string} [text]
- * @property {number} [malice]
- * @property {string} [usage]
- * @property {{threshold:string,effect:string}[]} [tiers]
- */
-
-/**
- * @typedef Placed
- * @property {string} instanceId
- * @property {string} monsterId
- * @property {number} count // for minions or duplicates stacked pre-encounter
- */
-
-// ---------- Local Storage Helpers ----------
-const LS_KEY = "ds_encounter_goblins_exact_v12"; // Incremented version key
-
-function saveLS(state) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
-}
-
-function loadLS() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { return null; }
-}
-
-// ---------- Seed Monsters (added Orc Godcaller) ----------
-/** @type {Monster[]} */
-const SEED_MONSTERS = [
-    // Orc Godcaller - Platoon Support
-    {
-        id: "orc-godcaller-platoon-l1",
-        name: "Orc Godcaller",
-        level: 1,
-        organization: "platoon",
-        role: "support",
-        ev: 6,
-        stamina: 30,
-        freeStrike: 3,
-        size: "1M",
-        speed: 6,
-        keywords: ["humanoid", "orc"],
-        source: "User Image",
-        attributes: { might: +1, agility: 0, reason: 0, intuition: +1, presence: +2 },
-        immunities: [],
-        weaknesses: [],
-        resistances: [],
-        traits: [
-            { name: "Relentless", text: "If the godcaller is reduced to 0 Stamina, they can make a free strike before dying. If the target of the free strike is reduced to 0 Stamina, the godcaller is reduced to 1 Stamina instead." }
-        ],
-        abilities: [
-            {
-                id: "power-chord",
-                type: "signature",
-                name: "Power Chord 2d10 + 2",
-                action: "main",
-                distance: "melee 1 or ranged 10",
-                keywords: ["Magic", "Melee", "Ranged", "Strike"],
-                text: "One creature or object.",
-                tiers: [
-                    { threshold: "≤11", effect: "5 sonic damage" },
-                    { threshold: "12-16", effect: "7 sonic damage" },
-                    { threshold: "17+", effect: "9 sonic damage; P<2 weakened (save ends)" }
-                ]
-            },
-            {
-                id: "cadenza",
-                type: "action",
-                name: "Cadenza",
-                action: "main",
-                distance: "ranged 10",
-                keywords: ["Magic", "Ranged"],
-                text: "One ally. Effect: The target moves up to their speed and can use a main action. 3 Malice: The godcaller targets a second ally.",
-                malice: 3,
-            },
-            {
-                id: "rallying-ostinato",
-                type: "maneuver",
-                name: "Rallying Ostinato",
-                action: "maneuver",
-                distance: "ranged 10",
-                malice: 2,
-                keywords: ["Magic", "Ranged"],
-                text: "Self and three allies. Effect: Each target regains 15 Stamina and ignores difficult terrain until the end of the encounter."
-            }
-        ]
-    },
-    // Human Storm Mage - Platoon Controller
-  {
-    id: "human-storm-mage-platoon-l3",
-    name: "Human Storm Mage",
-    level: 3,
-    organization: "platoon",
-    role: "controller",
-    ev: 10,
-    stamina: 40,
-    freeStrike: 5,
-    size: "1M",
-    speed: 5,
-    keywords: ["human", "humanoid"],
-    source: "User Image",
-    attributes: { might: 0, agility: 0, reason: +2, intuition: 0, presence: +1 },
-    immunities: ["Corruption 3", "Psychic 3"],
-    weaknesses: [],
-    resistances: [],
-    traits: [
-      { name: "Arcane Shield", text: "Any melee ability targeting the storm mage takes a bane. Additionally, whenever the mage takes damage from an adjacent enemy, the enemy takes 2 lightning damage, and if they have R<1 they are pushed up to 2 squares." },
-      { name: "Supernatural Insight", text: "The storm mage ignores concealment if it’s granted by a supernatural effect." }
-    ],
-    abilities: [
-      {
-        id: "lightning-bolt",
-        type: "signature",
-        name: "Lightning Bolt 2d10 + 2",
-        action: "main",
-        distance: "ranged 15",
-        keywords: ["Magic", "Ranged", "Strike"],
-        text: "One creature or object. 5 Malice: The ability loses the Ranged and Strike keywords, takes the Area keyword, and is a 10 x 1 line within 15 that targets each enemy and object in the area.",
-        malice: 5,
-        tiers: [
-          { threshold: "≤11", effect: "7 lightning damage" },
-          { threshold: "12-16", effect: "10 lightning damage" },
-          { threshold: "17+", effect: "13 lightning damage" }
-        ]
-      },
-      {
-        id: "gust-of-wind",
-        type: "maneuver",
-        name: "Gust of Wind 2d10 + 2",
-        action: "maneuver",
-        area: "5 cube within 1",
-        malice: 3,
-        keywords: ["Area", "Magic"],
-        text: "Each enemy and object in the area. Effect: The gust of wind disperses gas or vapor and extinguishes any flames, including supernatural effects.",
-        tiers: [
-            { threshold: "≤11", effect: "Slide 2; M<0 slowed (save ends)" },
-            { threshold: "12-16", effect: "Slide 4; M<1 slowed (save ends)" },
-            { threshold: "17+", effect: "Slide 6; M<2 slowed (save ends)" }
-        ]
-      }
-    ]
-  },
-  // Hobgoblin Burning Witch - Platoon Controller
-  {
-    id: "hobgoblin-burning-witch-platoon-l4",
-    name: "Hobgoblin Burning Witch",
-    level: 4,
-    organization: "platoon",
-    role: "controller",
-    ev: 12,
-    stamina: 50,
-    freeStrike: 5,
-    size: "1M",
-    speed: 5,
-    keywords: ["goblin", "hobgoblin", "humanoid", "infernal"],
-    source: "User Image",
-    notes: { movement: "Teleport" },
-    attributes: { might: 0, agility: +1, reason: +2, intuition: +2, presence: +3 },
-    immunities: ["Fire"],
-    weaknesses: [],
-    resistances: [],
-    traits: [
-      { name: "Infernal Ichor", text: "When the burning witch is reduced to 0 Stamina, they spray burning blood. Each creature adjacent to the burning witch takes 3 fire damage." }
-    ],
-    abilities: [
-      {
-        id: "soul-burn",
-        type: "signature",
-        name: "Soul Burn 2d10 + 3",
-        action: "main",
-        distance: "ranged 10",
-        keywords: ["Magic", "Ranged", "Strike"],
-        text: "Two creatures or objects. 2 Malice: Each target who has P<2 is weakened (save ends). Any enemy who starts their turn within 3 squares of a target weakened this way and who has P<2 is weakened (save ends).",
-        malice: 2,
-        tiers: [
-          { threshold: "≤11", effect: "4 corruption or fire damage" },
-          { threshold: "12-16", effect: "6 corruption or fire damage" },
-          { threshold: "17+", effect: "8 corruption or fire damage" }
-        ]
-      },
-      {
-        id: "burning-legion",
-        type: "maneuver",
-        name: "Burning Legion",
-        action: "maneuver",
-        distance: "ranged 10",
-        malice: 1,
-        keywords: ["Magic", "Ranged"],
-        text: "Three creatures. Effect: Each target can teleport up to 5 squares. Each creature adjacent to a target at their destination takes 3 fire damage."
-      }
-    ]
-  },
-  // Goblin Spinecleaver — Minion Brute
-  {
-    id: "goblin-spinecleaver-minion-l1",
-    name: "Goblin Spinecleaver (Squad)",
-    level: 1,
-    organization: "minion",
-    role: "brute",
-    ev: 3, // for four minions
-    stamina: 5,
-    freeStrike: 2,
-    size: "1S",
-    speed: 5,
-    keywords: ["goblin","humanoid"],
-    source: "Monsters PDF p.161–162",
-    minion: true,
-    minionPerSquad: 4,
-    notes: { movement: "Climb", withCaptain: "+1 damage bonus to strikes" },
-    attributes: { might: +2, agility: 0, reason: 0, intuition: 0, presence: -1 },
-    immunities: [], weaknesses: [], resistances: [],
-    traits: [ { name: "Crafty", text: "The spinecleaver doesn’t provoke opportunity attacks by moving." } ],
-    abilities: [
-      {
-        id: "axe",
-        type: "signature",
-        name: "Axe 2d10 + 2",
-        action: "main",
-        distance: "melee 1",
-        keywords: ["Melee","Strike","Weapon"],
-        text: "One creature or object per minion.",
-        tiers: [
-          { threshold: "≤11", effect: "2 damage; push 1" },
-          { threshold: "12–16", effect: "4 damage; push 3" },
-          { threshold: "17+", effect: "5 damage; push 4" }
-        ]
-      }
-    ]
-  },
-
-  // Goblin Sniper — Minion Artillery
-  {
-    id: "goblin-sniper-minion-l1",
-    name: "Goblin Sniper (Squad)",
-    level: 1,
-    organization: "minion",
-    role: "artillery",
-    ev: 3, // for four minions
-    stamina: 3,
-    freeStrike: 2,
-    size: "1S",
-    speed: 5,
-    keywords: ["goblin","humanoid"],
-    source: "Monsters PDF p.161",
-    minion: true,
-    minionPerSquad: 4,
-    notes: { movement: "Climb", withCaptain: "+5 bonus to ranged distance" },
-    attributes: { might: -2, agility: +2, reason: 0, intuition: 0, presence: -1 },
-    immunities: [], weaknesses: [], resistances: [],
-    traits: [ { name: "Crafty", text: "The sniper doesn’t provoke opportunity attacks by moving." } ],
-    abilities: [
-      {
-        id: "bow",
-        type: "signature",
-        name: "Bow 2d10 + 2",
-        action: "main",
-        distance: "ranged 10",
-        keywords: ["Ranged","Strike","Weapon"],
-        text: "One creature or object per minion. If the sniper doesn’t use a move action this turn, this ability gains an edge.",
-        tiers: [
-          { threshold: "≤11", effect: "2 damage" },
-          { threshold: "12–16", effect: "4 damage" },
-          { threshold: "17+", effect: "5 damage" }
-        ]
-      }
-    ]
-  },
-
-  // Goblin Assassin — Horde Ambusher
-  {
-    id: "goblin-assassin-horde-l1",
-    name: "Goblin Assassin",
-    level: 1,
-    organization: "horde",
-    role: "ambusher",
-    ev: 3,
-    stamina: 15,
-    freeStrike: 2,
-    size: "1S",
-    speed: 6,
-    keywords: ["goblin","humanoid"],
-    source: "Monsters PDF p.162",
-    notes: { movement: "Climb" },
-    attributes: { might: -2, agility: +2, reason: 0, intuition: 0, presence: -2 },
-    immunities: [], weaknesses: [], resistances: [],
-    traits: [
-      { name: "Crafty", text: "The assassin doesn’t provoke opportunity attacks by moving." },
-      { name: "Slip Away", text: "The assassin can attempt to hide even while observed." }
-    ],
-    abilities: [
-      {
-        id: "stab",
-        type: "signature",
-        name: "Sword Stab 2d10 + 2",
-        action: "main",
-        distance: "melee 1",
-        keywords: ["Melee","Strike","Weapon"],
-        text: "One creature or object.",
-        tiers: [
-          { threshold: "≤11", effect: "4 damage" },
-          { threshold: "12–16", effect: "6 damage" },
-          { threshold: "17+", effect: "7 damage" }
-        ],
-        onHit: "If this ability gains an edge or has a double edge, it deals an extra 2 damage."
-      },
-      {
-        id: "chains",
-        type: "action",
-        name: "Shadow Chains 2d10 + 2",
-        action: "main",
-        distance: "ranged 10",
-        keywords: ["Magic","Ranged","Strike"],
-        text: "Three creatures.",
-        malice: 3,
-        tiers: [
-          { threshold: "≤11", effect: "2 corruption damage; A<0 restrained (save ends)" },
-          { threshold: "12–16", effect: "4 corruption damage; A<1 restrained (save ends)" },
-          { threshold: "17+", effect: "5 corruption damage; A<2 restrained (save ends)" }
-        ]
-      }
-    ]
-  },
-
-  // Goblin Cursespitter — Horde Hexer
-  {
-    id: "goblin-cursespitter-horde-l1",
-    name: "Goblin Cursespitter",
-    level: 1,
-    organization: "horde",
-    role: "hexer",
-    ev: 3,
-    stamina: 10,
-    freeStrike: 1,
-    size: "1S",
-    speed: 5,
-    keywords: ["goblin","humanoid"],
-    source: "Monsters PDF p.163",
-    notes: { movement: "Climb" },
-    attributes: { might: -2, agility: +1, reason: 0, intuition: +2, presence: 0 },
-    immunities: [], weaknesses: [], resistances: [],
-    traits: [ { name: "Crafty", text: "The cursespitter doesn’t provoke opportunity attacks by moving." } ],
-    abilities: [
-      {
-        id: "eye",
-        type: "signature",
-        name: "Eye of Surlach 2d10 + 2",
-        action: "main",
-        distance: "ranged 15",
-        keywords: ["Magic","Ranged","Strike"],
-        text: "One creature.",
-        tiers: [
-          { threshold: "≤11", effect: "3 corruption damage; K<0 weakened (save ends)" },
-          { threshold: "12–16", effect: "4 corruption damage; K<1 weakened (save ends)" },
-          { threshold: "17+", effect: "5 corruption damage; K<2 weakened (save ends)" }
-        ]
-      },
-      {
-        id: "hex",
-        type: "maneuver",
-        name: "Dizzying Hex 2d10 + 2",
-        action: "maneuver",
-        distance: "ranged 10",
-        malice: 1,
-        keywords: ["Magic","Ranged","Strike"],
-        text: "One creature.",
-        tiers: [
-          { threshold: "≤11", effect: "K<0 prone" },
-          { threshold: "12–16", effect: "K<1 prone and can’t stand (EoT)" },
-          { threshold: "17+", effect: "Prone; K<2 can’t stand (save ends)" }
-        ]
-      }
-    ]
-  },
-
-  // Goblin Warrior — Horde Harrier
-  {
-    id: "goblin-warrior-horde-l1",
-    name: "Goblin Warrior",
-    level: 1,
-    organization: "horde",
-    role: "harrier",
-    ev: 3,
-    stamina: 15,
-    freeStrike: 1,
-    size: "1S",
-    speed: 6,
-    keywords: ["goblin","humanoid"],
-    source: "Monsters PDF p.164",
-    notes: { movement: "Climb" },
-    attributes: { might: -2, agility: +2, reason: 0, intuition: 0, presence: -1 },
-    immunities: [], weaknesses: [], resistances: [],
-    traits: [ { name: "Crafty", text: "The warrior doesn’t provoke opportunity attacks by moving." } ],
-    abilities: [
-      {
-        id: "spear",
-        type: "signature",
-        name: "Spear Charge 2d10 + 2",
-        action: "main",
-        distance: "melee 1",
-        keywords: ["Charge","Melee","Strike","Weapon"],
-        text: "One creature or object.",
-        tiers: [
-          { threshold: "≤11", effect: "3 damage" },
-          { threshold: "12–16", effect: "4 damage" },
-          { threshold: "17+", effect: "5 damage" }
-        ]
-      },
-      {
-        id: "bury",
-        type: "action",
-        name: "Bury the Point 2d10 + 2",
-        action: "main",
-        distance: "melee 1",
-        malice: 2,
-        keywords: ["Melee","Strike","Weapon"],
-        text: "One creature.",
-        tiers: [
-          { threshold: "≤11", effect: "5 damage; M<0 bleeding (save ends)" },
-          { threshold: "12–16", effect: "6 damage; M<1 bleeding (save ends)" },
-          { threshold: "17+", effect: "7 damage; M<3 bleeding (save ends)" }
-        ]
-      }
-    ]
-  }
-];
-
-// ---------- Reducer State ----------
-const initialState = (() => {
-  const fromLS = loadLS();
-  return (
-    fromLS || {
-      dataset: SEED_MONSTERS,
-      builder: /** @type {Placed[]} */ ([]),
-      tracker: null,
-      party: { teamName: "Aventureros", director: "Director del Juego" },
-    }
-  );
-})();
-
-function reducer(state, action) {
-  switch (action.type) {
-    case "addMonster": {
-      const { monsterId } = action;
-      const next = { ...state, builder: upsertPlaced(state.builder, monsterId) };
-      saveLS(next); return next;
-    }
-    case "removePlaced": {
-      const next = { ...state, builder: state.builder.filter(p => p.instanceId !== action.instanceId) };
-      saveLS(next); return next;
-    }
-    case "setPlacedCount": {
-      const next = { ...state, builder: state.builder.map(p => p.instanceId === action.instanceId ? { ...p, count: Math.max(1, action.count|0) } : p) };
-      saveLS(next); return next;
-    }
-    case "resetBuilder": {
-      const next = { ...state, builder: [] };
-      saveLS(next); return next;
-    }
-    case "startEncounter": {
-      const tracker = buildTracker(state);
-      const next = { ...state, tracker };
-      saveLS(next); return next;
-    }
-    case "endEncounter": {
-      const next = { ...state, tracker: null };
-      saveLS(next); return next;
-    }
-    case "updatePartyInfo": {
-        const { field, value } = action;
-        const next = { ...state, party: { ...state.party, [field]: value } };
-        saveLS(next); return next;
-    }
-
-    // Tracker actions
-    case "advanceTurn": {
-      const t = state.tracker;
-      const nextIndex = (t.turnIndex + 1) % t.order.length;
-      const wrap = nextIndex === 0 ? { round: t.round + 1 } : {};
-      
-      const nextActiveUnitId = t.order[nextIndex];
-      const newUnits = t.units.map(u => 
-        u.unitId === nextActiveUnitId 
-          ? { ...u, actionsUsed: { move: false, attack: false, maneuver: false } }
-          : u
-      );
-
-      const tracker = { ...t, units: newUnits, turnIndex: nextIndex, ...wrap };
-      const next = { ...state, tracker };
-      saveLS(next); return next;
-    }
-    case "adjustHP": {
-        const { unitId, delta } = action;
-        const oldUnit = state.tracker.units.find(u => u.unitId === unitId);
-        const newHp = Math.max(0, oldUnit.hp + delta);
-        let maliceGained = 0;
-        if (oldUnit.hp > 0 && newHp === 0) {
-            maliceGained = 1;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encounter Toolkit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+        .unit-card {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 p-4">
 
-        const newUnits = state.tracker.units.map(u => u.unitId === unitId ? { ...u, hp: newHp } : u);
-        const tracker = { ...state.tracker, units: newUnits, malice: (state.tracker.malice || 0) + maliceGained };
-        const next = { ...state, tracker };
-        saveLS(next); return next;
+    <div id="app-container" class="flex flex-col h-screen max-h-screen">
+        <!-- App content will be rendered here by JavaScript -->
+    </div>
+
+    <script>
+    // --- DATA (SEED MONSTERS) ---
+    const SEED_MONSTERS=[{id:"orc-godcaller-platoon-l1",name:"Orc Godcaller",level:1,organization:"platoon",role:"support",ev:6,stamina:30,freeStrike:3,size:"1M",speed:6,keywords:["humanoid","orc"],source:"User Image",attributes:{might:1,agility:0,reason:0,intuition:1,presence:2},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Relentless",text:"If the godcaller is reduced to 0 Stamina, they can make a free strike before dying. If the target of the free strike is reduced to 0 Stamina, the godcaller is reduced to 1 Stamina instead."}],abilities:[{id:"power-chord",type:"signature",name:"Power Chord 2d10 + 2",action:"main",distance:"melee 1 or ranged 10",keywords:["Magic","Melee","Ranged","Strike"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"5 sonic damage"},{threshold:"12-16",effect:"7 sonic damage"},{threshold:"17+",effect:"9 sonic damage; P<2 weakened (save ends)"}]},{id:"cadenza",type:"action",name:"Cadenza",action:"main",distance:"ranged 10",keywords:["Magic","Ranged"],text:"One ally. Effect: The target moves up to their speed and can use a main action. 3 Malice: The godcaller targets a second ally.",malice:3},{id:"rallying-ostinato",type:"maneuver",name:"Rallying Ostinato",action:"maneuver",distance:"ranged 10",malice:2,keywords:["Magic","Ranged"],text:"Self and three allies. Effect: Each target regains 15 Stamina and ignores difficult terrain until the end of the encounter."}]},{id:"human-storm-mage-platoon-l3",name:"Human Storm Mage",level:3,organization:"platoon",role:"controller",ev:10,stamina:40,freeStrike:5,size:"1M",speed:5,keywords:["human","humanoid"],source:"User Image",attributes:{might:0,agility:0,reason:2,intuition:0,presence:1},immunities:["Corruption 3","Psychic 3"],weaknesses:[],resistances:[],traits:[{name:"Arcane Shield",text:"Any melee ability targeting the storm mage takes a bane. Additionally, whenever the mage takes damage from an adjacent enemy, the enemy takes 2 lightning damage, and if they have R<1 they are pushed up to 2 squares."},{name:"Supernatural Insight",text:"The storm mage ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"lightning-bolt",type:"signature",name:"Lightning Bolt 2d10 + 2",action:"main",distance:"ranged 15",keywords:["Magic","Ranged","Strike"],text:"One creature or object. 5 Malice: The ability loses the Ranged and Strike keywords, takes the Area keyword, and is a 10 x 1 line within 15 that targets each enemy and object in the area.",malice:5,tiers:[{threshold:"≤11",effect:"7 lightning damage"},{threshold:"12-16",effect:"10 lightning damage"},{threshold:"17+",effect:"13 lightning damage"}]},{id:"gust-of-wind",type:"maneuver",name:"Gust of Wind 2d10 + 2",action:"maneuver",area:"5 cube within 1",malice:3,keywords:["Area","Magic"],text:"Each enemy and object in the area. Effect: The gust of wind disperses gas or vapor and extinguishes any flames, including supernatural effects.",tiers:[{threshold:"≤11",effect:"Slide 2; M<0 slowed (save ends)"},{threshold:"12-16",effect:"Slide 4; M<1 slowed (save ends)"},{threshold:"17+",effect:"Slide 6; M<2 slowed (save ends)"}]}]},{id:"hobgoblin-burning-witch-platoon-l4",name:"Hobgoblin Burning Witch",level:4,organization:"platoon",role:"controller",ev:12,stamina:50,freeStrike:5,size:"1M",speed:5,keywords:["goblin","hobgoblin","humanoid","infernal"],source:"User Image",notes:{movement:"Teleport"},attributes:{might:0,agility:1,reason:2,intuition:2,presence:3},immunities:["Fire"],weaknesses:[],resistances:[],traits:[{name:"Infernal Ichor",text:"When the burning witch is reduced to 0 Stamina, they spray burning blood. Each creature adjacent to the burning witch takes 3 fire damage."}],abilities:[{id:"soul-burn",type:"signature",name:"Soul Burn 2d10 + 3",action:"main",distance:"ranged 10",keywords:["Magic","Ranged","Strike"],text:"Two creatures or objects. 2 Malice: Each target who has P<2 is weakened (save ends). Any enemy who starts their turn within 3 squares of a target weakened this way and who has P<2 is weakened (save ends).",malice:2,tiers:[{threshold:"≤11",effect:"4 corruption or fire damage"},{threshold:"12-16",effect:"6 corruption or fire damage"},{threshold:"17+",effect:"8 corruption or fire damage"}]},{id:"burning-legion",type:"maneuver",name:"Burning Legion",action:"maneuver",distance:"ranged 10",malice:1,keywords:["Magic","Ranged"],text:"Three creatures. Effect: Each target can teleport up to 5 squares. Each creature adjacent to a target at their destination takes 3 fire damage."}]},{id:"goblin-spinecleaver-minion-l1",name:"Goblin Spinecleaver (Squad)",level:1,organization:"minion",role:"brute",ev:3,stamina:5,freeStrike:2,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.161–162",minion:!0,minionPerSquad:4,notes:{movement:"Climb",withCaptain:"+1 damage bonus to strikes"},attributes:{might:2,agility:0,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The spinecleaver doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"axe",type:"signature",name:"Axe 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object per minion.",tiers:[{threshold:"≤11",effect:"2 damage; push 1"},{threshold:"12–16",effect:"4 damage; push 3"},{threshold:"17+",effect:"5 damage; push 4"}]}]},{id:"goblin-sniper-minion-l1",name:"Goblin Sniper (Squad)",level:1,organization:"minion",role:"artillery",ev:3,stamina:3,freeStrike:2,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.161",minion:!0,minionPerSquad:4,notes:{movement:"Climb",withCaptain:"+5 bonus to ranged distance"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The sniper doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"bow",type:"signature",name:"Bow 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Ranged","Strike","Weapon"],text:"One creature or object per minion. If the sniper doesn’t use a move action this turn, this ability gains an edge.",tiers:[{threshold:"≤11",effect:"2 damage"},{threshold:"12–16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]}]},{id:"goblin-assassin-horde-l1",name:"Goblin Assassin",level:1,organization:"horde",role:"ambusher",ev:3,stamina:15,freeStrike:2,size:"1S",speed:6,keywords:["goblin","humanoid"],source:"Monsters PDF p.162",notes:{movement:"Climb"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-2},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The assassin doesn’t provoke opportunity attacks by moving."},{name:"Slip Away",text:"The assassin can attempt to hide even while observed."}],abilities:[{id:"stab",type:"signature",name:"Sword Stab 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"4 damage"},{threshold:"12–16",effect:"6 damage"},{threshold:"17+",effect:"7 damage"}],onHit:"If this ability gains an edge or has a double edge, it deals an extra 2 damage."},{id:"chains",type:"action",name:"Shadow Chains 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Magic","Ranged","Strike"],text:"Three creatures.",malice:3,tiers:[{threshold:"≤11",effect:"2 corruption damage; A<0 restrained (save ends)"},{threshold:"12–16",effect:"4 corruption damage; A<1 restrained (save ends)"},{threshold:"17+",effect:"5 corruption damage; A<2 restrained (save ends)"}]}]},{id:"goblin-cursespitter-horde-l1",name:"Goblin Cursespitter",level:1,organization:"horde",role:"hexer",ev:3,stamina:10,freeStrike:1,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.163",notes:{movement:"Climb"},attributes:{might:-2,agility:1,reason:0,intuition:2,presence:0},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The cursespitter doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"eye",type:"signature",name:"Eye of Surlach 2d10 + 2",action:"main",distance:"ranged 15",keywords:["Magic","Ranged","Strike"],text:"One creature.",tiers:[{threshold:"≤11",effect:"3 corruption damage; K<0 weakened (save ends)"},{threshold:"12–16",effect:"4 corruption damage; K<1 weakened (save ends)"},{threshold:"17+",effect:"5 corruption damage; K<2 weakened (save ends)"}]},{id:"hex",type:"maneuver",name:"Dizzying Hex 2d10 + 2",action:"maneuver",distance:"ranged 10",malice:1,keywords:["Magic","Ranged","Strike"],text:"One creature.",tiers:[{threshold:"≤11",effect:"K<0 prone"},{threshold:"12–16",effect:"K<1 prone and can’t stand (EoT)"},{threshold:"17+",effect:"Prone; K<2 can’t stand (save ends)"}]}]},{id:"goblin-warrior-horde-l1",name:"Goblin Warrior",level:1,organization:"horde",role:"harrier",ev:3,stamina:15,freeStrike:1,size:"1S",speed:6,keywords:["goblin","humanoid"],source:"Monsters PDF p.164",notes:{movement:"Climb"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The warrior doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"spear",type:"signature",name:"Spear Charge 2d10 + 2",action:"main",distance:"melee 1",keywords:["Charge","Melee","Strike","Weapon"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"3 damage"},{threshold:"12–16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]},{id:"bury",type:"action",name:"Bury the Point 2d10 + 2",action:"main",distance:"melee 1",malice:2,keywords:["Melee","Strike","Weapon"],text:"One creature.",tiers:[{threshold:"≤11",effect:"5 damage; M<0 bleeding (save ends)"},{threshold:"12–16",effect:"6 damage; M<1 bleeding (save ends)"},{threshold:"17+",effect:"7 damage; M<3 bleeding (save ends)"}]}]}];
+
+    // --- STATE MANAGEMENT ---
+    const LS_KEY = "ds_encounter_html_v3";
+    let state = {};
+
+    function initState() {
+        const defaultState = {
+            isLibraryOpen: true,
+            builder: [],
+            tracker: null,
+            party: { teamName: "Aventureros", director: "Director del Juego" },
+            filters: { keyword: 'all', organization: 'all', level: 'all', q: '' },
+            openMonsterCards: {},
+            openUnitCards: {},
+            activeUnitTabs: {},
+            selectedUnitId: null,
+        };
+        try {
+            const loadedState = JSON.parse(localStorage.getItem(LS_KEY));
+            state = { ...defaultState, ...(loadedState || {}) };
+        } catch (e) {
+            console.error("Failed to load state, using defaults:", e);
+            state = defaultState;
+        }
     }
-    case "spendMalice": {
-        const { cost } = action;
-        if (state.tracker.malice < cost) return state;
-        const tracker = { ...state.tracker, malice: state.tracker.malice - cost };
-        const next = { ...state, tracker };
-        saveLS(next); return next;
+
+    function saveState() {
+        try {
+            const stateToSave = { ...state, openMonsterCards: {}, openUnitCards: {}, activeUnitTabs: {} };
+            localStorage.setItem(LS_KEY, JSON.stringify(stateToSave));
+        } catch (e) {
+            console.error("Failed to save state:", e);
+        }
     }
-    case "toggleCondition": {
-      const { unitId, cond } = action;
-      const tracker = { ...state.tracker, units: state.tracker.units.map(u => u.unitId === unitId ? { ...u, conditions: toggleInArray(u.conditions, cond) } : u) };
-      const next = { ...state, tracker };
-      saveLS(next); return next;
+    
+    // --- HELPERS ---
+    function fmtMod(n) { return n > 0 ? `+${n}` : String(n); }
+    function cryptoRandom() {
+        if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+            const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0].toString(36);
+        }
+        return Math.random().toString(36).slice(2);
     }
-    case "toggleAction": {
-      const { unitId, actionName } = action;
-      const tracker = { ...state.tracker, units: state.tracker.units.map(u => 
-        u.unitId === unitId 
-          ? { ...u, actionsUsed: { ...u.actionsUsed, [actionName]: !u.actionsUsed[actionName] } }
-          : u
-      )};
-      const next = { ...state, tracker };
-      saveLS(next); return next;
+    function getMonsterById(id) {
+        return SEED_MONSTERS.find(m => m.id === id);
     }
-    case "setOrder": {
-      const tracker = { ...state.tracker, order: action.order };
-      const next = { ...state, tracker };
-      saveLS(next); return next;
+    function toggleInArray(arr, val) {
+        return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
     }
-    default:
-      return state;
-  }
-}
 
-function upsertPlaced(list, monsterId) {
-  const instanceId = `${monsterId}:${cryptoRandom()}`;
-  const monster = getMonsterById(monsterId);
-  const count = monster?.minion ? (monster.minionPerSquad || 4) : 1;
-  return [...list, { instanceId, monsterId, count }];
-}
+    // --- RENDER FUNCTIONS ---
+    const appContainer = document.getElementById('app-container');
 
-function toggleInArray(arr, val) {
-  return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
-}
+    function render() {
+        const { isLibraryOpen, tracker, party } = state;
+        const libraryContainerClass = isLibraryOpen ? "w-1/3" : "w-auto";
+        const mainContainerClass = "flex-grow";
 
-function cryptoRandom() {
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0].toString(36);
-  }
-  return Math.random().toString(36).slice(2);
-}
+        appContainer.innerHTML = `
+            <header class="flex-shrink-0">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-xl font-semibold">Encounter Toolkit</h1>
+                </div>
+                ${tracker ? renderTrackerHeader(party, tracker.malice) : ''}
+            </header>
 
-// Keep dataset accessible
-let _datasetCache = SEED_MONSTERS;
-function setDataset(ds) { _datasetCache = ds; }
-function getMonsterById(id) { return _datasetCache.find(m => m.id === id); }
+            <main class="flex-grow flex gap-4 overflow-hidden">
+                <div id="library-container" class="transition-all duration-300 ${libraryContainerClass}">
+                    ${renderLibraryPanel()}
+                </div>
 
-// ---------- Builder → Tracker ----------
-function buildTracker(state) {
-  const units = [];
-  for (const p of state.builder) {
-    const m = state.dataset.find(x => x.id === p.monsterId);
-    if (!m) continue;
-
-    const baseUnit = {
-      level: m.level,
-      role: m.role,
-      org: m.organization,
-      freeStrike: m.freeStrike,
-      monsterId: m.id,
-      conditions: [],
-      actionsUsed: { move: false, attack: false, maneuver: false }
-    };
-
-    if (m.organization === "minion") {
-      units.push({
-        ...baseUnit,
-        unitId: `${p.instanceId}-squad`,
-        name: `${m.name}`,
-        label: "Squad",
-        hp: m.stamina * (p.count || m.minionPerSquad || 4),
-        hpMax: m.stamina * (p.count || m.minionPerSquad || 4),
-      });
-    } else {
-      const copies = p.count || 1;
-      for (let i = 1; i <= copies; i++) {
-        units.push({
-          ...baseUnit,
-          unitId: `${p.instanceId}-${i}`,
-          name: `${m.name} #${i}`,
-          label: "",
-          hp: m.stamina,
-          hpMax: m.stamina,
-        });
-      }
+                <div id="main-container" class="transition-all duration-300 ${mainContainerClass} flex flex-col space-y-4 overflow-auto custom-scrollbar">
+                    ${!tracker ? renderBuilderPanel() : ''}
+                    ${tracker ? renderTrackerPanel() : ''}
+                </div>
+            </main>
+        `;
+        addEventListeners();
     }
-  }
-  const initialMalice = state.builder.reduce((acc, p) => acc + (getMonsterById(p.monsterId)?.organization === 'minion' ? 1 : (p.count || 1)), 0);
-  return {
-    started: true,
-    round: 1,
-    order: units.map(u => u.unitId),
-    turnIndex: 0,
-    units,
-    malice: initialMalice,
-    log: [ { t: Date.now(), msg: `Encounter started. Units: ${units.length}` } ],
-  };
-}
 
-// ---------- UI ----------
-function EncounterStudio() {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const [isLibraryOpen, setLibraryOpen] = useState(true);
-  useEffect(() => setDataset(state.dataset), [state.dataset]);
+    function renderTrackerHeader(party, malice) {
+        return `
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 mb-4 flex justify-between items-center">
+                <div class="flex items-center gap-4 text-sm">
+                    <div>
+                        <span class="opacity-70">Equipo: </span>
+                        <input type="text" data-party-field="teamName" value="${party.teamName}" class="bg-slate-800 rounded px-2 py-1 w-40"/>
+                    </div>
+                    <div>
+                        <span class="opacity-70">Director: </span>
+                        <input type="text" data-party-field="director" value="${party.director}" class="bg-slate-800 rounded px-2 py-1 w-40"/>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs opacity-70">Malice</div>
+                    <div class="text-2xl font-bold text-violet-400">${malice}</div>
+                </div>
+            </div>
+        `;
+    }
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4">
-      <Header onToggleLibrary={() => setLibraryOpen(!isLibraryOpen)} isLibraryOpen={isLibraryOpen} />
-      {state.tracker && <TrackerHeader party={state.party} malice={state.tracker.malice} dispatch={dispatch} />}
-      <div className="grid grid-cols-12 gap-4">
-        {isLibraryOpen && (
-          <div className="col-span-4 space-y-3">
-            <LibraryPanel dataset={state.dataset} onAdd={(id)=>dispatch({type:"addMonster", monsterId:id})} />
-          </div>
-        )}
+    function renderLibraryPanel() {
+        const { filters, isLibraryOpen } = state;
+        const filterOptions = (() => {
+            const keywords = [...new Set(SEED_MONSTERS.flatMap(m => m.keywords))].sort();
+            const organizations = [...new Set(SEED_MONSTERS.map(m => m.organization))].sort();
+            const levels = [...new Set(SEED_MONSTERS.map(m => m.level))].sort((a,b) => a - b);
+            return { keywords, organizations, levels };
+        })();
+
+        const filteredMonsters = SEED_MONSTERS.filter(m => {
+            const nameMatch = filters.q === "" || m.name.toLowerCase().includes(filters.q.toLowerCase());
+            const keywordMatch = filters.keyword === 'all' || m.keywords.includes(filters.keyword);
+            const orgMatch = filters.organization === 'all' || m.organization === filters.organization;
+            const levelMatch = filters.level === 'all' || m.level === parseInt(filters.level, 10);
+            return nameMatch && keywordMatch && orgMatch && levelMatch;
+        }).sort((a, b) => a.name.localeCompare(b.name));
+
+        return `
+            <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-2 h-full flex flex-col">
+                <div class="flex justify-between items-center">
+                    <div class="font-medium ${!isLibraryOpen ? 'hidden' : ''}">Biblioteca de Monstruos</div>
+                    <button data-action="toggle-library" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs">
+                        ${isLibraryOpen ? '<<' : '>>'}
+                    </button>
+                </div>
+                <div class="${!isLibraryOpen ? 'hidden' : ''}">
+                    <input id="search-input" class="w-full bg-slate-800 rounded-lg px-2 py-1 text-sm" placeholder="Buscar por nombre..." value="${filters.q}" />
+                    
+                    <div class="grid grid-cols-3 gap-2 text-xs mt-2">
+                        <select data-filter="keyword" class="w-full bg-slate-800 rounded-lg px-2 py-1">
+                            <option value="all">Raza</option>
+                            ${filterOptions.keywords.map(k => `<option value="${k}" ${filters.keyword === k ? 'selected' : ''}>${k}</option>`).join('')}
+                        </select>
+                        <select data-filter="organization" class="w-full bg-slate-800 rounded-lg px-2 py-1">
+                            <option value="all">Organización</option>
+                            ${filterOptions.organizations.map(o => `<option value="${o}" ${filters.organization === o ? 'selected' : ''}>${o}</option>`).join('')}
+                        </select>
+                        <select data-filter="level" class="w-full bg-slate-800 rounded-lg px-2 py-1">
+                            <option value="all">Nivel</option>
+                            ${filterOptions.levels.map(l => `<option value="${l}" ${filters.level == l ? 'selected' : ''}>${l}</option>`).join('')}
+                        </select>
+                    </div>
+                    <button data-action="reset-filters" class="w-full text-center py-1 mt-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs">Limpiar filtros</button>
+                </div>
+
+                <div class="flex-grow overflow-auto divide-y divide-slate-800 mt-2 custom-scrollbar pr-2 ${!isLibraryOpen ? 'hidden' : ''}">
+                    ${filteredMonsters.map(m => renderMonsterCard(m)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderMonsterCard(m) {
+        const isOpen = state.openMonsterCards[m.id];
+        return `
+            <div class="py-2">
+                <div class="flex items-center justify-between">
+                    <div data-action="toggle-monster-card" data-monster-id="${m.id}" class="cursor-pointer flex-grow pr-4">
+                        <div class="text-sm font-medium">${m.name}</div>
+                        <div class="text-xs opacity-70">L${m.level} · ${m.organization} · ${m.role} · EV ${m.ev} · FS ${m.freeStrike}</div>
+                        <div class="text-[10px] opacity-60">${m.size} · Speed ${m.speed} · ${m.source}</div>
+                    </div>
+                    <button data-action="add-monster" data-monster-id="${m.id}" class="px-2 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 text-xs flex-shrink-0">Add</button>
+                </div>
+                ${isOpen ? `
+                    <div class="mt-2 text-xs bg-slate-900/60 border border-slate-800 rounded-lg p-2 space-y-2">
+                        ${m.notes ? `<div class="flex gap-4">${m.notes.movement ? `<div><div class="opacity-70">Movement</div><div>${m.notes.movement}</div></div>` : ''}${m.notes.withCaptain ? `<div><div class="opacity-70">With Captain</div><div>${m.notes.withCaptain}</div></div>` : ''}</div>` : ''}
+                        ${m.attributes ? `<div><div class="font-medium mb-1">Attributes</div><div>Might ${fmtMod(m.attributes.might)} · Agility ${fmtMod(m.attributes.agility)} · Reason ${fmtMod(m.attributes.reason)} · Intuition ${fmtMod(m.attributes.intuition)} · Presence ${fmtMod(m.attributes.presence)}</div></div>` : ''}
+                        ${m.traits?.length ? `<div><div class="font-medium mb-1">Traits</div><ul class="list-disc ml-4">${m.traits.map(t => `<li><b>${t.name}.</b> ${t.text}</li>`).join('')}</ul></div>` : ''}
+                        ${m.abilities?.length ? `<div><div class="font-medium mb-1">Abilities</div><div class="space-y-2">${m.abilities.map(a => renderAbilityBlock(a)).join('')}</div></div>` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    function renderAbilityBlock(ability, isTracker = false, unitId = null) {
+        const canAfford = isTracker && ability.malice ? state.tracker.malice >= ability.malice : true;
+        const clickableClass = isTracker && canAfford ? 'border-slate-800 hover:border-slate-600 cursor-pointer' : 'border-slate-800';
+        return `
+            <div data-action="${isTracker ? 'use-ability' : ''}" data-ability-id="${ability.id}" ${isTracker ? `data-unit-id="${unitId}"` : ''} class="p-2 rounded border ${clickableClass} ${!canAfford ? 'opacity-50 cursor-not-allowed' : ''}">
+                <div class="flex items-center justify-between">
+                    <div class="font-medium">${ability.name} ${ability.type === 'signature' ? `<span class="opacity-60">(Signature)</span>` : ''}</div>
+                    <div class="opacity-70">${ability.action}</div>
+                </div>
+                <div class="opacity-80">${ability.distance || ''}${ability.area ? ` · ${ability.area}` : ''}${ability.keywords?.length ? ` · ${ability.keywords.join(', ')}` : ''}${ability.malice ? `<span class="font-bold text-violet-400"> · Malice ${ability.malice}</span>` : ''}${ability.usage ? ` · ${ability.usage}` : ''}</div>
+                ${ability.tiers?.length ? `<div class="mt-1">${ability.tiers.map(t => `<div>${t.threshold}: ${t.effect}</div>`).join('')}</div>` : ''}
+                ${ability.onHit ? `<div>On Hit: ${ability.onHit}</div>` : ''}
+                ${ability.text ? `<div>${ability.text}</div>` : ''}
+                ${ability.trigger ? `<div>Trigger: ${ability.trigger}</div>` : ''}
+            </div>
+        `;
+    }
+
+    function renderBuilderPanel() {
+        const { builder } = state;
+        const totalEV = builder.reduce((acc, p) => {
+            const m = getMonsterById(p.monsterId);
+            if (!m) return acc;
+            if (m.organization === 'minion') return acc + m.ev;
+            return acc + m.ev * (p.count || 1);
+        }, 0);
+        const totalUnits = builder.reduce((acc, p) => acc + (getMonsterById(p.monsterId)?.organization === 'minion' ? 1 : (p.count || 1)), 0);
+
+        return `
+            <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="font-medium">Creador de Encuentros</div>
+                    <div class="flex gap-2">
+                        <button data-action="start-encounter" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40" ${builder.length === 0 ? 'disabled' : ''}>Iniciar</button>
+                        <button data-action="reset-builder" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700">Limpiar</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70">Total EV</div><div class="text-lg font-semibold">${totalEV}</div></div>
+                    <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70"># Unidades</div><div class="text-lg font-semibold">${totalUnits}</div></div>
+                </div>
+                <div class="space-y-2">
+                    ${builder.length === 0 ? `<div class="text-sm opacity-70">Añade monstruos desde la biblioteca.</div>` : builder.map(p => renderPlacedMonster(p)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderPlacedMonster(p) {
+        const m = getMonsterById(p.monsterId);
+        if (!m) return '';
+        const countLabel = m.organization === 'minion' ? 'Minions' : 'Copias';
+        return `
+            <div class="p-3 rounded-xl border border-slate-800 bg-slate-900/60">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="font-medium">${m.name}</div>
+                        <div class="text-xs opacity-70">L${m.level} · ${m.organization} · ${m.role} · EV ${m.ev} · FS ${m.freeStrike}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1 text-xs">
+                            <span>${countLabel}</span>
+                            <input type="number" min="1" max="32" data-action="set-placed-count" data-instance-id="${p.instanceId}" class="w-16 bg-slate-800 rounded px-2 py-1" value="${p.count}">
+                        </div>
+                        <button data-action="remove-placed" data-instance-id="${p.instanceId}" class="px-2 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 text-xs">Quitar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderTrackerPanel() {
+        const { tracker } = state;
+        if (!tracker) return '';
+        return `
+            <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="font-medium">Rastreador</div>
+                    <div class="flex gap-2">
+                        <button data-action="end-encounter" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700">Terminar</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-sm">
+                    <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70">Ronda</div><div class="text-lg font-semibold">${tracker.round}</div></div>
+                    <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70">Turno</div><div class="text-lg font-semibold">${tracker.turnIndex + 1}/${tracker.order.length}</div></div>
+                    <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70">Unidades</div><div class="text-lg font-semibold">${tracker.units.length}</div></div>
+                </div>
+                ${renderInitiativeEditor(tracker)}
+                <div class="space-y-2 max-h-[30rem] overflow-auto custom-scrollbar pr-1">
+                    ${tracker.order.map((id, idx) => renderUnitRow(tracker.units.find(u => u.unitId === id), idx === tracker.turnIndex)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderInitiativeEditor(tracker) {
+        return `
+            <div class="rounded-xl border border-slate-800 p-3">
+                <div class="text-sm font-medium mb-2">Orden de Iniciativa</div>
+                <div class="flex flex-wrap gap-2">
+                    ${tracker.order.map((id, idx) => `
+                        <div class="px-2 py-1 rounded-lg bg-slate-800 text-xs flex items-center gap-1">
+                            <span>${idx + 1}.</span>
+                            <span class="opacity-80">${tracker.units.find(u => u.unitId === id)?.name || id}</span>
+                            <button data-action="move-initiative" data-idx="${idx}" data-dir="-1" class="px-1 rounded bg-slate-700 hover:bg-slate-600">↑</button>
+                            <button data-action="move-initiative" data-idx="${idx}" data-dir="1" class="px-1 rounded bg-slate-700 hover:bg-slate-600">↓</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderUnitRow(u, isActive) {
+        if (!u) return '';
+        const monster = getMonsterById(u.monsterId);
+        const hasManeuver = monster?.abilities?.some(a => a.action === 'maneuver');
+        const isDead = u.hp <= 0;
+        const isBlooded = !isDead && u.hp <= u.hpMax * 0.25;
+        const isSelected = state.selectedUnitId === u.unitId;
+        const pct = Math.max(0, Math.min(100, Math.round((u.hp / u.hpMax) * 100)));
+        const bar = pct >= 66 ? "bg-emerald-600" : pct >= 33 ? "bg-amber-500" : "bg-rose-600";
+        const isOpen = state.openUnitCards[u.unitId];
+        const activeTab = state.activeUnitTabs[u.unitId] || 'acciones';
         
-        <div className={`${isLibraryOpen ? "col-span-8" : "col-span-12"} space-y-3`}>
-          {!state.tracker && <BuilderPanel state={state} dispatch={dispatch} />}
-          {state.tracker && <TrackerPanel state={state} dispatch={dispatch} />}
-        </div>
-      </div>
-    </div>
-  );
-}
+        let borderColor = "border-slate-800";
+        if (isActive && !isDead) borderColor = "border-emerald-500 shadow-lg shadow-emerald-500/20";
+        else if (isSelected && !isDead) borderColor = "border-blue-500 shadow-lg shadow-blue-500/20";
 
-function Header({ onToggleLibrary, isLibraryOpen }) {
-  return (
-    <div className="flex justify-between items-center mb-4">
-      <h1 className="text-xl font-semibold">Encounter Toolkit</h1>
-      <button onClick={onToggleLibrary} className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs whitespace-nowrap">
-        {isLibraryOpen ? 'Ocultar Biblioteca' : 'Mostrar Biblioteca'}
-      </button>
-    </div>
-  );
-}
+        const tabButton = (tabName, label) => `<button data-action="set-unit-tab" data-unit-id="${u.unitId}" data-tab-name="${tabName}" class="px-3 py-1 text-xs rounded-t-lg ${activeTab === tabName ? 'bg-slate-800' : 'bg-slate-900'}">${label}</button>`;
 
-function TrackerHeader({ party, malice, dispatch }) {
-    return (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 mb-4 flex justify-between items-center">
-            <div className="flex items-center gap-4 text-sm">
-                <div>
-                    <span className="opacity-70">Equipo: </span>
-                    <input 
-                        type="text" 
-                        value={party.teamName} 
-                        onChange={(e) => dispatch({ type: 'updatePartyInfo', field: 'teamName', value: e.target.value })}
-                        className="bg-slate-800 rounded px-2 py-1 w-40"
-                    />
-                </div>
-                <div>
-                    <span className="opacity-70">Director: </span>
-                    <input 
-                        type="text" 
-                        value={party.director} 
-                        onChange={(e) => dispatch({ type: 'updatePartyInfo', field: 'director', value: e.target.value })}
-                        className="bg-slate-800 rounded px-2 py-1 w-40"
-                    />
-                </div>
-            </div>
-            <div className="text-right">
-                <div className="text-xs opacity-70">Malice</div>
-                <div className="text-2xl font-bold text-violet-400">{malice}</div>
-            </div>
-        </div>
-    );
-}
-
-
-function LibraryPanel({ dataset, onAdd }) {
-  const [q, setQ] = useState("");
-  const [filters, setFilters] = useState({ keyword: 'all', organization: 'all', level: 'all' });
-
-  const filterOptions = useMemo(() => {
-    const keywords = [...new Set(dataset.flatMap(m => m.keywords))].sort();
-    const organizations = [...new Set(dataset.map(m => m.organization))].sort();
-    const levels = [...new Set(dataset.map(m => m.level))].sort((a,b) => a - b);
-    return { keywords, organizations, levels };
-  }, [dataset]);
-
-  const filtered = useMemo(() => {
-    return dataset
-      .filter(m => {
-        const nameMatch = q.trim() === "" || m.name.toLowerCase().includes(q.toLowerCase());
-        const keywordMatch = filters.keyword === 'all' || m.keywords.includes(filters.keyword);
-        const orgMatch = filters.organization === 'all' || m.organization === filters.organization;
-        const levelMatch = filters.level === 'all' || m.level === parseInt(filters.level, 10);
-        return nameMatch && keywordMatch && orgMatch && levelMatch;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [dataset, q, filters]);
-
-  const handleFilterChange = (e) => {
-    setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-  
-  const resetFilters = () => {
-    setFilters({ keyword: 'all', organization: 'all', level: 'all' });
-    setQ("");
-  }
-
-  return (
-    <div className="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-2 h-full flex flex-col">
-      <div className="font-medium">Biblioteca de Monstruos</div>
-      <input className="w-full bg-slate-800 rounded-lg px-2 py-1 text-sm" placeholder="Buscar por nombre..." value={q} onChange={e=>setQ(e.target.value)} />
-      
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <select name="keyword" value={filters.keyword} onChange={handleFilterChange} className="w-full bg-slate-800 rounded-lg px-2 py-1">
-          <option value="all">Raza</option>
-          {filterOptions.keywords.map(k => <option key={k} value={k}>{k}</option>)}
-        </select>
-        <select name="organization" value={filters.organization} onChange={handleFilterChange} className="w-full bg-slate-800 rounded-lg px-2 py-1">
-          <option value="all">Organización</option>
-          {filterOptions.organizations.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <select name="level" value={filters.level} onChange={handleFilterChange} className="w-full bg-slate-800 rounded-lg px-2 py-1">
-          <option value="all">Nivel</option>
-          {filterOptions.levels.map(l => <option key={l} value={l}>{l}</option>)}
-        </select>
-      </div>
-      <button onClick={resetFilters} className="w-full text-center py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs">Limpiar filtros</button>
-
-      <div className="flex-grow overflow-auto divide-y divide-slate-800 mt-2">
-        {filtered.map(m => (
-          <MonsterCard key={m.id} m={m} onAdd={() => onAdd(m.id)} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SectionLabel({children}){return <div className="font-medium mb-1">{children}</div>}
-
-function MonsterCard({ m, onAdd }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="py-2">
-      <div className="flex items-center justify-between">
-        <div onClick={()=>setOpen(!open)} className="cursor-pointer flex-grow pr-4">
-          <div className="text-sm font-medium">{m.name}</div>
-          <div className="text-xs opacity-70">L{m.level} · {m.organization} · {m.role} · EV {m.ev} · FS {m.freeStrike}</div>
-          <div className="text-[10px] opacity-60">{m.size} · Speed {m.speed} · {m.source}</div>
-        </div>
-        <button className="px-2 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 text-xs flex-shrink-0" onClick={onAdd}>Add</button>
-      </div>
-      {open && (
-        <div className="mt-2 text-xs bg-slate-900/60 border border-slate-800 rounded-lg p-2 space-y-2">
-          {(m.notes?.movement || m.notes?.withCaptain) && (
-            <div className="flex gap-4">
-              {m.notes?.movement && <div><div className="opacity-70">Movement</div><div>{m.notes.movement}</div></div>}
-              {m.notes?.withCaptain && <div><div className="opacity-70">With Captain</div><div>{m.notes.withCaptain}</div></div>}
-            </div>
-          )}
-          {m.attributes && (
-            <div>
-              <SectionLabel>Attributes</SectionLabel>
-              <div>Might {fmtMod(m.attributes.might)} · Agility {fmtMod(m.attributes.agility)} · Reason {fmtMod(m.attributes.reason)} · Intuition {fmtMod(m.attributes.intuition)} · Presence {fmtMod(m.attributes.presence)}</div>
-            </div>
-          )}
-          {m.traits?.length ? (
-            <div>
-              <SectionLabel>Traits</SectionLabel>
-              <ul className="list-disc ml-4">
-                {m.traits.map((t,i)=>(<li key={i}><b>{t.name}.</b> {t.text}</li>))}
-              </ul>
-            </div>
-          ) : null}
-          {m.abilities?.length ? (
-            <div>
-              <SectionLabel>Abilities</SectionLabel>
-              <div className="space-y-2">
-                {m.abilities.map(a => (
-                  <AbilityBlock key={a.id} a={a} />
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AbilityBlock({a, onClick, currentMalice}){
-  const canAfford = a.malice ? currentMalice >= a.malice : true;
-  return (
-    <div className={`p-2 rounded border ${canAfford && onClick ? 'border-slate-800 hover:border-slate-600 cursor-pointer' : 'border-slate-800'}`} onClick={() => canAfford && onClick && onClick(a)}>
-      <div className="flex items-center justify-between">
-        <div className="font-medium">{a.name} {a.type === 'signature' ? <span className="opacity-60">(Signature)</span> : null}</div>
-        <div className="opacity-70">{a.action}</div>
-      </div>
-      <div className="opacity-80">{a.distance || ''}{a.area ? ` · ${a.area}` : ''}{a.keywords?.length ? ` · ${a.keywords.join(', ')}` : ''}{a.malice ? <span className="font-bold text-violet-400"> · Malice {a.malice}</span> : ''}{a.usage ? ` · ${a.usage}` : ''}</div>
-      {a.tiers?.length ? (
-        <div className="mt-1">
-          {a.tiers.map((t,i)=>(<div key={i}>{t.threshold}: {t.effect}</div>))}
-        </div>
-      ) : (a.damage ? <div>Damage: <b>{a.damage}</b></div> : null)}
-      {a.onHit ? <div>On Hit: {a.onHit}</div> : null}
-      {a.text ? <div>{a.text}</div> : null}
-      {a.trigger ? <div>Trigger: {a.trigger}</div> : null}
-    </div>
-  );
-}
-
-function BuilderPanel({ state, dispatch }) {
-  const totalEV = useMemo(()=> state.builder.reduce((acc, p)=>{
-    const m = state.dataset.find(x=>x.id===p.monsterId);
-    if (!m) return acc;
-    if (m.organization === 'minion') return acc + m.ev; // squad cost
-    return acc + m.ev * (p.count||1);
-  }, 0), [state]);
-
-  return (
-    <div className="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="font-medium">Creador de Encuentros</div>
-        <div className="flex gap-2">
-          <button className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40" disabled={state.builder.length===0} onClick={()=>dispatch({type:"startEncounter"})}>Iniciar</button>
-          <button className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700" onClick={()=>dispatch({type:"resetBuilder"})}>Limpiar</button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <StatBox label="Total EV" value={totalEV} />
-        <StatBox label="# Unidades" value={state.builder.reduce((a,p)=> a + (getMonsterById(p.monsterId)?.organization === 'minion' ? 1 : (p.count||1)), 0)} />
-      </div>
-
-      <div className="space-y-2">
-        {state.builder.length === 0 && (
-          <div className="text-sm opacity-70">Añade monstruos desde la biblioteca. Las escuadras de esbirros usan salud agrupada.</div>
-        )}
-        {state.builder.map(p => {
-          const m = state.dataset.find(x=>x.id===p.monsterId);
-          if (!m) return null;
-          return (
-            <div key={p.instanceId} className="p-3 rounded-xl border border-slate-800 bg-slate-900/60">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{m.name}</div>
-                  <div className="text-xs opacity-70">L{m.level} · {m.organization} · {m.role} · EV {m.ev} · FS {m.freeStrike}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {m.organization === 'minion' ? (
-                    <div className="flex items-center gap-1 text-xs">
-                      <span>Minions</span>
-                      <input type="number" min={1} max={32} className="w-16 bg-slate-800 rounded px-2 py-1" value={p.count} onChange={e=>dispatch({type:"setPlacedCount", instanceId:p.instanceId, count:+e.target.value})} />
+        return `
+            <div class="unit-card p-3 rounded-xl border ${borderColor} ${isDead ? 'opacity-50 bg-slate-950' : 'bg-slate-900/60'}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-grow pr-4">
+                        <div data-action="select-unit" data-unit-id="${u.unitId}" class="font-medium text-sm cursor-pointer ${isDead ? 'line-through' : ''}">${u.name} <span class="opacity-60 text-xs">L${u.level} · ${u.org} · ${u.role}</span></div>
+                        <div class="h-2 rounded bg-slate-800 mt-1 mb-1 overflow-hidden"><div class="h-2 ${bar}" style="width: ${pct}%"></div></div>
+                        <div class="flex items-center gap-2">
+                            <div class="text-xs opacity-80">
+                                HP ${u.hp}/${u.hpMax} · FS ${u.freeStrike}
+                                ${isBlooded ? `<span class="ml-2 text-rose-400 font-bold">Ensangrentado</span>` : ''}
+                                ${isDead ? `<span class="ml-2 text-red-500 font-bold">Muerto</span>` : ''}
+                            </div>
+                            <button data-action="toggle-unit-card" data-unit-id="${u.unitId}" class="text-xs font-bold bg-slate-700 hover:bg-slate-600 rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">${isOpen ? '−' : '+'}</button>
+                        </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-xs">
-                      <span>Copias</span>
-                      <input type="number" min={1} max={12} className="w-16 bg-slate-800 rounded px-2 py-1" value={p.count} onChange={e=>dispatch({type:"setPlacedCount", instanceId:p.instanceId, count:+e.target.value})} />
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center gap-2">
+                            <input type="number" placeholder="Valor" class="w-20 bg-slate-800 rounded-lg px-2 py-1 text-xs" data-hp-input="${u.unitId}">
+                            <button data-action="adjust-hp" data-unit-id="${u.unitId}" data-delta-sign="-1" class="px-2 py-1 bg-rose-800 hover:bg-rose-700 rounded-lg text-xs" ${isDead ? 'disabled' : ''}>Daño</button>
+                            <button data-action="adjust-hp" data-unit-id="${u.unitId}" data-delta-sign="1" class="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-xs">Sana</button>
+                        </div>
                     </div>
-                  )}
-                  <button className="px-2 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 text-xs" onClick={()=>dispatch({type:"removePlaced", instanceId:p.instanceId})}>Quitar</button>
                 </div>
-              </div>
+                <div class="mt-3 flex items-center gap-4 text-xs">
+                    <label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="move" ${u.actionsUsed.move ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Movimiento</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="attack" ${u.actionsUsed.attack ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Ataque</label>
+                    ${hasManeuver ? `<label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="maneuver" ${u.actionsUsed.maneuver ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Maniobra</label>` : ''}
+                </div>
+                ${isOpen && monster ? `
+                    <div class="mt-2 text-[11px]">
+                        <div class="border-b border-slate-800">
+                            ${tabButton('acciones', 'Acciones')}
+                            ${tabButton('rasgos', 'Rasgos')}
+                            ${tabButton('condiciones', 'Condiciones')}
+                        </div>
+                        <div class="p-2 bg-slate-800 rounded-b-lg">
+                            ${activeTab === 'acciones' ? `<div class="space-y-2">${monster.abilities.map(a => renderAbilityBlock(a, true, u.unitId)).join('')}</div>` : ''}
+                            ${activeTab === 'rasgos' ? `<div class="space-y-2">${monster.traits.map(t => `<div><b>${t.name}.</b> ${t.text}</div>`).join('')}</div>` : ''}
+                            ${activeTab === 'condiciones' ? `<div class="flex flex-wrap gap-1 text-[10px]">${["prone","grabbed","stunned","weakened","dazed","blinded","restrained","slowed","poisoned"].map(c => `<span data-action="toggle-condition" data-unit-id="${u.unitId}" data-cond="${c}" class="select-none px-2 py-1 rounded-full cursor-pointer ${u.conditions.includes(c) ? "bg-slate-200 text-slate-900" : "bg-slate-700 text-slate-200"}">${c}</span>`).join('')}</div>` : ''}
+                        </div>
+                    </div>
+                ` : ''}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function StatBox({ label, value }) {
-  return (
-    <div className="rounded-xl bg-slate-900/70 border border-slate-800 p-3">
-      <div className="text-xs opacity-70">{label}</div>
-      <div className="text-lg font-semibold">{value}</div>
-    </div>
-  );
-}
-
-function TrackerPanel({ state, dispatch }) {
-  if (!state.tracker) return null;
-
-  const t = state.tracker;
-  const unitsMap = Object.fromEntries(t.units.map(u=>[u.unitId,u]));
-
-  return (
-    <div className="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="font-medium">Rastreador</div>
-        <div className="flex gap-2">
-          <button className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700" onClick={()=>dispatch({type:"endEncounter"})}>Terminar</button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 text-sm">
-        <StatBox label="Ronda" value={t.round} />
-        <StatBox label="Turno" value={`${t.turnIndex+1}/${t.order.length}`} />
-        <StatBox label="Unidades" value={t.units.length} />
-      </div>
-
-      <InitiativeEditor tracker={t} onSet={(order)=>dispatch({type:"setOrder", order})} />
-
-      <div className="space-y-2 max-h-[30rem] overflow-auto pr-1">
-        {t.order.map((id, idx) => (
-          <UnitRow key={id} u={unitsMap[id]} active={idx===t.turnIndex} dispatch={dispatch} currentMalice={t.malice} />
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600" onClick={()=>dispatch({type:"advanceTurn"})}>Siguiente turno</button>
-      </div>
-
-      <div className="text-xs opacity-80 max-h-40 overflow-auto border-t border-slate-800 pt-2">
-        {t.log.map((e,i)=>(<div key={i}>{new Date(e.t).toLocaleTimeString()} — {e.msg}</div>))}
-      </div>
-    </div>
-  );
-}
-
-function InitiativeEditor({ tracker, onSet }) {
-  const [order, setOrder] = useState(tracker.order);
-  useEffect(()=>setOrder(tracker.order), [tracker.order]);
-
-  function move(idx, dir) {
-    const next = [...order];
-    const j = idx + dir;
-    if (j < 0 || j >= next.length) return;
-    const [it] = next.splice(idx,1);
-    next.splice(j,0,it);
-    setOrder(next); onSet(next);
-  }
-
-  return (
-    <div className="rounded-xl border border-slate-800 p-3">
-      <div className="text-sm font-medium mb-2">Orden de Iniciativa</div>
-      <div className="flex flex-wrap gap-2">
-        {order.map((id, idx)=> (
-          <div key={id} className="px-2 py-1 rounded-lg bg-slate-800 text-xs flex items-center gap-1">
-            <span>{idx+1}.</span>
-            <span className="opacity-80">{tracker.units.find(u=>u.unitId===id)?.name || id}</span>
-            <button className="px-1 rounded bg-slate-700 hover:bg-slate-600" onClick={()=>move(idx,-1)}>↑</button>
-            <button className="px-1 rounded bg-slate-700 hover:bg-slate-600" onClick={()=>move(idx, 1)}>↓</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function HPAdjuster({ onAdjust, isDead }) {
-  const [value, setValue] = useState("");
-
-  const handleApply = (isHealing) => {
-    const amount = parseInt(value, 10);
-    if (isNaN(amount) || amount <= 0) return;
-    onAdjust(isHealing ? amount : -amount);
-    setValue("");
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <input 
-        type="number" 
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Valor"
-        className="w-20 bg-slate-800 rounded-lg px-2 py-1 text-xs"
-      />
-      <button onClick={() => handleApply(false)} className="px-2 py-1 bg-rose-800 hover:bg-rose-700 rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed" disabled={isDead}>Daño</button>
-      <button onClick={() => handleApply(true)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-xs">Sana</button>
-    </div>
-  );
-}
-
-function UnitRow({ u, active, dispatch, currentMalice }) {
-  if (!u) return null;
-  
-  const monster = getMonsterById(u.monsterId || "");
-  const hasManeuver = monster?.abilities?.some(a => a.action === 'maneuver') || false;
-
-  const isDead = u.hp <= 0;
-  const isBlooded = !isDead && u.hp <= u.hpMax * 0.25;
-
-  const pct = Math.max(0, Math.min(100, Math.round((u.hp / u.hpMax) * 100)));
-  const bar = pct >= 66 ? "bg-emerald-600" : pct >= 33 ? "bg-amber-500" : "bg-rose-600";
-
-  const conds = ["prone","grabbed","stunned","weakened","dazed","blinded","restrained","slowed","poisoned"];
-  const [open,setOpen]=useState(false);
-
-  const handleAbilityClick = (ability) => {
-    if (isDead) return;
-    if (ability.malice) {
-        dispatch({ type: 'spendMalice', cost: ability.malice });
+        `;
     }
-    if (ability.action === 'main') {
-      dispatch({ type: 'toggleAction', unitId: u.unitId, actionName: 'attack' });
-    } else if (ability.action === 'maneuver') {
-      dispatch({ type: 'toggleAction', unitId: u.unitId, actionName: 'maneuver' });
+
+    // --- EVENT LISTENERS & LOGIC ---
+    function addEventListeners() {
+        appContainer.addEventListener('click', handleAppClick);
+        appContainer.addEventListener('input', handleAppInput);
+        appContainer.addEventListener('change', handleAppChange);
     }
-  };
+    
+    function handleAppClick(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-  return (
-    <div className={`p-3 rounded-xl border ${active && !isDead ? "border-emerald-600" : "border-slate-800"} ${isDead ? 'opacity-50 bg-slate-950' : 'bg-slate-900/60'}`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-grow pr-4">
-          <div className={`font-medium text-sm ${isDead ? 'line-through' : ''}`}>
-            {u.name} <span className="opacity-60 text-xs">L{u.level} · {u.org} · {u.role}</span>
-          </div>
-          <div className="h-2 rounded bg-slate-800 mt-1 mb-1 overflow-hidden"><div className={`h-2 ${bar}`} style={{ width: pct+"%" }}></div></div>
-          <div className="flex items-center gap-2">
-            <div className="text-xs opacity-80">
-                HP {u.hp}/{u.hpMax} · FS {u.freeStrike}
-                {isBlooded && <span className="ml-2 text-rose-400 font-bold">Ensangrentado</span>}
-                {isDead && <span className="ml-2 text-red-500 font-bold">Muerto</span>}
-            </div>
-            {monster && (
-                <button onClick={()=>setOpen(!open)} className="text-xs font-bold bg-slate-700 hover:bg-slate-600 rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
-                    {open ? '−' : '+'}
-                </button>
-            )}
-          </div>
-        </div>
-        <div className="flex-shrink-0">
-          <HPAdjuster onAdjust={(delta) => dispatch({type: 'adjustHP', unitId: u.unitId, delta})} isDead={isDead} />
-        </div>
-      </div>
+        const nonClickActions = ['toggle-action', 'set-placed-count'];
+        if (nonClickActions.includes(target.dataset.action)) return;
 
-      <div className="mt-3 flex items-center gap-4 text-xs">
-        <label className="flex items-center gap-1.5"><input type="checkbox" className="rounded-sm" checked={u.actionsUsed.move} onChange={() => dispatch({type: 'toggleAction', unitId: u.unitId, actionName: 'move'})} disabled={isDead} /> Movimiento</label>
-        <label className="flex items-center gap-1.5"><input type="checkbox" className="rounded-sm" checked={u.actionsUsed.attack} onChange={() => dispatch({type: 'toggleAction', unitId: u.unitId, actionName: 'attack'})} disabled={isDead} /> Ataque</label>
-        {hasManeuver && <label className="flex items-center gap-1.5"><input type="checkbox" className="rounded-sm" checked={u.actionsUsed.maneuver} onChange={() => dispatch({type: 'toggleAction', unitId: u.unitId, actionName: 'maneuver'})} disabled={isDead} /> Maniobra</label>}
-      </div>
+        const { action, monsterId, instanceId, unitId, idx, dir, deltaSign, cond, tabName, abilityId } = target.dataset;
+        let stateChanged = true;
 
-      {open && monster?.abilities?.length ? (
-        <div className="mt-2 text-[11px] space-y-2">
-          {(monster.notes?.movement || monster.notes?.withCaptain) && (
-            <div className="opacity-70">{monster.notes?.movement ? `Movement: ${monster.notes.movement}` : ''}{monster.notes?.withCaptain ? ` · With Captain: ${monster.notes.withCaptain}` : ''}</div>
-          )}
-          {monster.traits?.length ? (
-            <div className="opacity-80">{monster.traits.map((t,i)=>(<div key={i}><b>{t.name}.</b> {t.text}</div>))}</div>
-          ) : null}
-          {monster.abilities.map(a=> (
-            <AbilityBlock key={a.id} a={a} onClick={handleAbilityClick} currentMalice={currentMalice} />
-          ))}
-        </div>
-      ) : null}
+        switch(action) {
+            case 'toggle-library': state.isLibraryOpen = !state.isLibraryOpen; break;
+            case 'reset-filters': state.filters = { keyword: 'all', organization: 'all', level: 'all', q: '' }; break;
+            case 'toggle-monster-card': state.openMonsterCards[monsterId] = !state.openMonsterCards[monsterId]; break;
+            case 'add-monster':
+                const monster = getMonsterById(monsterId);
+                state.builder.push({ instanceId: `${monsterId}:${cryptoRandom()}`, monsterId, count: monster?.minion ? (monster.minionPerSquad || 4) : 1 });
+                break;
+            case 'remove-placed': state.builder = state.builder.filter(p => p.instanceId !== instanceId); break;
+            case 'start-encounter': handleStartEncounter(); break;
+            case 'reset-builder': state.builder = []; break;
+            case 'end-encounter': state.tracker = null; state.selectedUnitId = null; break;
+            case 'advance-turn': handleAdvanceTurn(); break;
+            case 'move-initiative': handleMoveInitiative(parseInt(idx, 10), parseInt(dir, 10)); break;
+            case 'toggle-unit-card': state.openUnitCards[unitId] = !state.openUnitCards[unitId]; break;
+            case 'set-unit-tab': state.activeUnitTabs[unitId] = tabName; break;
+            case 'adjust-hp': handleAdjustHp(unitId, deltaSign); break;
+            case 'toggle-condition': handleToggleCondition(unitId, cond); break;
+            case 'use-ability': handleUseAbility(unitId, abilityId); break;
+            case 'select-unit': state.selectedUnitId = state.selectedUnitId === unitId ? null : unitId; break;
+            default: stateChanged = false; break;
+        }
+        
+        if (stateChanged) {
+            saveState();
+            render();
+        }
+    }
 
-      <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
-        {conds.map(c => (
-          <span key={c} onClick={()=> !isDead && dispatch({type: 'toggleCondition', unitId: u.unitId, cond: c})} className={`select-none px-2 py-1 rounded-full ${isDead ? 'cursor-not-allowed' : 'cursor-pointer'} ${u.conditions.includes(c)?"bg-slate-200 text-slate-900":"bg-slate-800 text-slate-200"}`}>{c}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
+    function handleAppInput(e) {
+        const target = e.target;
+        if (target.id === 'search-input') {
+            state.filters.q = target.value;
+            render();
+        } else if (target.dataset.partyField) {
+            state.party[target.dataset.partyField] = target.value;
+            saveState();
+        } else if (target.dataset.action === 'set-placed-count') {
+            const p = state.builder.find(p => p.instanceId === target.dataset.instanceId);
+            if (p) p.count = Math.max(1, parseInt(target.value, 10) || 1);
+            render();
+        }
+    }
 
-function fmtMod(n){return n>0?`+${n}`:String(n);}
+    function handleAppChange(e) {
+        const target = e.target;
+        if (target.dataset.filter) {
+            state.filters[target.dataset.filter] = target.value;
+            render();
+        } else if (target.dataset.action === 'toggle-action') {
+            handleToggleAction(target.dataset.unitId, target.dataset.actionName, target.checked);
+            saveState();
+            render();
+        }
+    }
+    
+    // --- LOGIC FUNCTIONS ---
+    function handleStartEncounter() {
+        const units = [];
+        state.builder.forEach(p => {
+            const m = getMonsterById(p.monsterId);
+            if (!m) return;
+            const baseUnit = { level: m.level, role: m.role, org: m.organization, freeStrike: m.freeStrike, monsterId: m.id, conditions: [], actionsUsed: { move: false, attack: false, maneuver: false } };
+            if (m.organization === "minion") {
+                units.push({ ...baseUnit, unitId: `${p.instanceId}-squad`, name: `${m.name}`, label: "Squad", hp: m.stamina * p.count, hpMax: m.stamina * p.count });
+            } else {
+                for (let i = 1; i <= p.count; i++) {
+                    units.push({ ...baseUnit, unitId: `${p.instanceId}-${i}`, name: `${m.name} #${i}`, label: "", hp: m.stamina, hpMax: m.stamina });
+                }
+            }
+        });
+        state.tracker = {
+            started: true, round: 1, order: units.map(u => u.unitId), turnIndex: 0, units,
+            malice: units.length, log: [{ t: Date.now(), msg: `Encounter started.` }]
+        };
+    }
+
+    function handleAdvanceTurn() {
+        const t = state.tracker;
+        t.turnIndex = (t.turnIndex + 1) % t.order.length;
+        if (t.turnIndex === 0) t.round++;
+        const nextUnitId = t.order[t.turnIndex];
+        const nextUnit = t.units.find(u => u.unitId === nextUnitId);
+        if (nextUnit) nextUnit.actionsUsed = { move: false, attack: false, maneuver: false };
+    }
+
+    function handleMoveInitiative(idx, dir) {
+        const { order } = state.tracker;
+        const j = idx + dir;
+        if (j < 0 || j >= order.length) return;
+        [order[idx], order[j]] = [order[j], order[idx]];
+    }
+
+    function handleAdjustHp(unitId, deltaSign) {
+        const input = document.querySelector(`[data-hp-input="${unitId}"]`);
+        const value = parseInt(input.value, 10);
+        if (isNaN(value) || value <= 0) return;
+        
+        const delta = value * parseInt(deltaSign, 10);
+        const unit = state.tracker.units.find(u => u.unitId === unitId);
+        const oldHp = unit.hp;
+        unit.hp = Math.max(0, unit.hp + delta);
+        if (oldHp > 0 && unit.hp === 0) {
+            state.tracker.malice++;
+        }
+        input.value = '';
+    }
+
+    function handleToggleAction(unitId, actionName, isChecked) {
+        const unit = state.tracker.units.find(u => u.unitId === unitId);
+        if (!unit) return;
+
+        unit.actionsUsed[actionName] = isChecked;
+
+        const monster = getMonsterById(unit.monsterId);
+        const hasManeuver = monster?.abilities?.some(a => a.action === 'maneuver');
+        
+        const allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack && (!hasManeuver || unit.actionsUsed.maneuver);
+
+        if (allActionsUsed) {
+            setTimeout(() => {
+                handleAdvanceTurn();
+                saveState();
+                render();
+            }, 300); // Small delay to see the checkmark
+        }
+    }
+
+    function handleToggleCondition(unitId, cond) {
+        const unit = state.tracker.units.find(u => u.unitId === unitId);
+        if (unit) unit.conditions = toggleInArray(unit.conditions, cond);
+    }
+    
+    function handleUseAbility(unitId, abilityId) {
+        const unit = state.tracker.units.find(u => u.unitId === unitId);
+        if (!unit) return;
+        const monster = getMonsterById(unit.monsterId);
+        const ability = monster.abilities.find(a => a.id === abilityId);
+        if (!ability || (ability.malice && state.tracker.malice < ability.malice)) return;
+
+        if (ability.malice) state.tracker.malice -= ability.malice;
+        if (ability.action === 'main') unit.actionsUsed.attack = true;
+        if (ability.action === 'maneuver') unit.actionsUsed.maneuver = true;
+
+        // Check if turn should end after using ability
+        const hasManeuver = monster?.abilities?.some(a => a.action === 'maneuver');
+        const allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack && (!hasManeuver || unit.actionsUsed.maneuver);
+
+        if (allActionsUsed) {
+             setTimeout(() => {
+                handleAdvanceTurn();
+                saveState();
+                render();
+            }, 300);
+        }
+    }
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initState();
+        render();
+    });
+    </script>
+</body>
+</html>
