@@ -25,12 +25,46 @@
         }
         .unit-card {
             transition: all 0.3s ease-in-out;
+            position: relative;
         }
         .dragging {
             opacity: 0.5;
         }
         .drag-over {
             border-top: 2px solid #10b981; /* emerald-500 */
+        }
+        @keyframes fadeUpAndOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+        }
+        .damage-float {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            pointer-events: none;
+            animation: fadeUpAndOut 1s forwards;
+        }
+        .health-bar-inner {
+            transition: background-color 0.5s ease, width 0.3s ease;
+        }
+        .resizer {
+            background: #334155; /* slate-700 */
+            cursor: col-resize;
+            width: 6px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .resizer:hover {
+            background: #475569; /* slate-600 */
         }
     </style>
 </head>
@@ -56,6 +90,17 @@
         stunned: "Una criatura aturdida está incapacitada, no puede moverse y solo puede hablar de forma vacilante. Falla automáticamente las tiradas de salvación de Fuerza y Destreza. Las tiradas de ataque en su contra tienen ventaja.",
         weakened: "Una criatura debilitada tiene desventaja en las tiradas de ataque y salvaciones basadas en Fuerza, Destreza o Constitución."
     };
+    
+    const ROLE_ICONS = {
+        ambusher: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-mask" viewBox="0 0 16 16" title="Ambusher"><path d="M6.225 1.227A7.5 7.5 0 0 1 10.5 8a7.5 7.5 0 0 1-4.275 6.773 7.003 7.003 0 0 0 2.758-1.017c.52-.39,1.012-.864,1.46-1.405C10.867 11.875 11 11.342 11 10.5c0-.24-.023-.47-.065-.692.16-.147.33-.31.508-.495.18-.188.353-.39.528-.604.177-.217.343-.45.508-.705.164-.25.32-.52.468-.81.148-.29.288-.602.418-.938.13-.337.25-.698.358-1.08.108-.38.203-.78.286-1.2.083-.42.153-.86.208-1.32.055-.46.095-.94.12-1.44.025-.5.038-1.02.038-1.54a.5.5 0 0 0-1 0c0 .52-.013 1.04-.038 1.54-.025.5-.065.98-.12 1.44a8.45 8.45 0 0 1-.208 1.32c-.083.42-.153.82-.286 1.2-.108.382-.203.782-.358 1.08-.13.336-.27.648-.418.938-.148.29-.304.56-.468.81-.165.255-.33.488-.508.705-.176.214-.348.416-.528.604-.18.185-.348.348-.508.495A6.501 6.501 0 0 0 10.5 9a6.5 6.5 0 0 0-4.058 1.44.5.5 0 0 0 .416.862A6.997 6.997 0 0 0 9.5 8a6.997 6.997 0 0 0-2.71-5.582.5.5 0 0 0-.563-.192zM3.283 3.283A6.997 6.997 0 0 0 2.5 8a6.997 6.997 0 0 0 .783 4.717.5.5 0 0 0 .862-.416A6.501 6.501 0 0 1 3.5 8a6.5 6.5 0 0 1 .58-2.854.5.5 0 0 0-.796-.563z"/></svg>`,
+        artillery: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bullseye" viewBox="0 0 16 16" title="Artillery"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 13A5 5 0 1 1 8 3a5 5 0 0 1 0 10zm0 1A6 6 0 1 0 8 2a6 6 0 0 0 0 12z"/><path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M9.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg>`,
+        brute: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hammer" viewBox="0 0 16 16" title="Brute"><path d="M9.972 2.508a.5.5 0 0 0-.16-.556l-.178-.129a5.009 5.009 0 0 0-2.076-.783C6.215.862 4.504 1.229 2.84 3.133H1.786a.5.5 0 0 0-.354.147L.146 4.567a.5.5 0 0 0 0 .706l2.571 2.579a.5.5 0 0 0 .708 0l1.286-1.29a.5.5 0 0 0 .146-.353V5.57l8.387 8.873A.5.5 0 0 0 14 14.5l1.5-1.5a.5.5 0 0 0 0-.707l-8.387-8.873h.582a.5.5 0 0 0 .353-.147l1.29-1.286a.5.5 0 0 0-.146-.353l-1.765-1.766z"/></svg>`,
+        controller: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tornado" viewBox="0 0 16 16" title="Controller"><path d="M3.734 1.002a.5.5 0 0 1 .491.592l-1.2 4.2a.5.5 0 0 1-.982 0l1.2-4.2a.5.5 0 0 1 .491-.592zM5.396 2.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM7.058 3.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM8.72 4.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM10.382 5.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM12.044 6.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM2.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM4.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM6.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM8.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM10.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM12.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5z"/></svg>`,
+        defender: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shield-fill" viewBox="0 0 16 16" title="Defender"><path d="M5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887 1.177C14.254 2.18 15 2.934 15 3.72V8.5c0 2.756-3.5 4.5-5 5.5-1.5-1-5-2.744-5-5.5V3.72c0-.786.746-1.54 1.113-1.983C1.843 1.215 2.96 .865 4.072.56z"/></svg>`,
+        harrier: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wind" viewBox="0 0 16 16" title="Harrier"><path d="M12.5 2A2.5 2.5 0 0 0 10 4.5a.5.5 0 0 1-1 0A3.5 3.5 0 1 1 12.5 8H.5a.5.5 0 0 1 0-1h12a2.5 2.5 0 0 0 0-5zm-7 1a1 1 0 0 0-1 1 .5.5 0 0 1-1 0 2 2 0 1 1 2 2h-5a.5.5 0 0 1 0-1h5a1 1 0 0 0 0-2zM0 8a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 0 8zm2.5 4a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5z"/></svg>`,
+        hexer: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-magic" viewBox="0 0 16 16" title="Hexer"><path d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0v1.829Zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707L14 2.707a.5.5 0 0 0 0-.707ZM7.293 4L8 3.293a.5.5 0 0 0-.707-.707L6.586 3.293a.5.5 0 0 0 .707.707Zm-.217 8.243c.28-.28.22-.76-.09-1.03l-1.8-1.8a.695.695 0 0 0-1.03-.09c-.28.28-.22.76.09 1.03l1.8 1.8c.27.27.75.33 1.03.09Zm-3.12-3.12a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03Zm2.42-2.42a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03Zm2.42-2.42a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03Zm-3.12-3.12a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03a.5.5 0 1 0-1 0v1.293a.5.5 0 0 0 .707.707L3.414 11l-2.121 2.121a.5.5 0 0 0 .707.707L4.121 11.707a.5.5 0 0 0 .707-.707L2.707 9H4.12a.5.5 0 1 0 0-1H2.707l2.122-2.121a.5.5 0 0 0-.707-.707L2 7.121V5.707a.5.5 0 0 0-1 0v1.414l-2.121 2.121a.5.5 0 0 0 .707.707L1.707 8.414a.5.5 0 0 0 .707-.707L.293 5.586a.5.5 0 0 0 0 .707l2.121 2.121V8a.5.5 0 0 0 1 0V6.586l2.121-2.121a.5.5 0 0 0-.707-.707L5.586 5.879a.5.5 0 0 0-.707.707L6 8.707l-1.707 1.707a.5.5 0 0 0 .707.707L6.293 9.414a.5.5 0 0 0 .707-.707L5.293 7a.5.5 0 0 0-.707-.707l-1.707 1.707a.5.5 0 0 0 .707.707L5.707 8.121a.5.5 0 0 0 .707-.707L4.293 5.293a.5.5 0 0 0-.707.707L5.707 8.121z"/></svg>`,
+        support: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16" title="Support"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>`,
+    };
 
     // --- STATE MANAGEMENT ---
     const LS_KEY = "ds_encounter_html_v5";
@@ -75,6 +120,10 @@
             selectedUnitId: null,
             isHeroModalOpen: false,
             conditionDropdownOpen: null,
+            panelWidths: {
+                library: '33.33%',
+                initiative: '33.33%'
+            }
         };
         try {
             const loadedState = JSON.parse(localStorage.getItem(LS_KEY));
@@ -108,40 +157,41 @@
     function toggleInArray(arr, val) {
         return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
     }
+    function getHealthColor(percentage) {
+        const p = percentage / 100;
+        const r = p > 0.5 ? 255 - 255 * (p - 0.5) * 2 : 255;
+        const g = p < 0.5 ? 255 * p * 2 : 255;
+        return `rgb(${Math.round(r)}, ${Math.round(g)}, 0)`;
+    }
 
     // --- RENDER FUNCTIONS ---
     const appContainer = document.getElementById('app-container');
     const modalContainer = document.getElementById('modal-container');
 
     function render() {
-        const { isLibraryOpen, isInitiativeOpen, tracker, party, isHeroModalOpen } = state;
+        const { isLibraryOpen, isInitiativeOpen, tracker, party, isHeroModalOpen, panelWidths } = state;
         
-        let gridCols = "grid-cols-12";
-        let libraryColSpan = isLibraryOpen ? "col-span-3" : "col-span-1";
-        let mainColSpan = "col-span-6";
-        let initiativeColSpan = isInitiativeOpen ? "col-span-3" : "col-span-1";
-
-        if (!isLibraryOpen && isInitiativeOpen) { mainColSpan = "col-span-8"; libraryColSpan = "col-span-1"; initiativeColSpan = "col-span-3";}
-        if (isLibraryOpen && !isInitiativeOpen) { mainColSpan = "col-span-8"; libraryColSpan = "col-span-3"; initiativeColSpan = "col-span-1";}
-        if (!isLibraryOpen && !isInitiativeOpen) { mainColSpan = "col-span-10"; libraryColSpan = "col-span-1"; initiativeColSpan = "col-span-1";}
-
+        const libraryStyle = isLibraryOpen ? `width: ${panelWidths.library};` : 'width: auto;';
+        const initiativeStyle = isInitiativeOpen ? `width: ${panelWidths.initiative};` : 'width: auto;';
 
         appContainer.innerHTML = `
             <header class="flex-shrink-0">
                 ${tracker ? renderTrackerHeader(party, tracker) : ''}
             </header>
 
-            <main class="flex-grow grid ${gridCols} gap-4 overflow-hidden">
-                <div id="library-container" class="transition-all duration-300 ${libraryColSpan} min-h-0">
+            <main class="flex-grow flex gap-0 overflow-hidden">
+                <div id="library-container" style="${libraryStyle}" class="transition-all duration-300 flex-shrink-0 min-h-0">
                     ${renderLibraryPanel()}
                 </div>
+                <div id="library-resizer" class="resizer" data-panel="library"></div>
 
-                <div id="main-container" class="transition-all duration-300 ${mainColSpan} flex flex-col space-y-4 overflow-auto custom-scrollbar min-h-0">
+                <div id="main-container" class="flex-grow flex flex-col space-y-4 overflow-auto custom-scrollbar min-h-0 px-4">
                     ${!tracker ? renderBuilderPanel() : ''}
                     ${tracker ? renderTrackerPanel() : ''}
                 </div>
                 
-                <div id="initiative-container" class="transition-all duration-300 ${initiativeColSpan} min-h-0">
+                <div id="initiative-resizer" class="resizer" data-panel="initiative"></div>
+                <div id="initiative-container" style="${initiativeStyle}" class="transition-all duration-300 flex-shrink-0 min-h-0">
                     ${tracker ? renderInitiativePanel() : ''}
                 </div>
             </main>
@@ -245,7 +295,13 @@
                 <div class="flex items-center justify-between">
                     <div data-action="toggle-monster-card" data-monster-id="${m.id}" class="cursor-pointer flex-grow pr-4">
                         <div class="text-sm font-medium">${m.name}</div>
-                        <div class="text-xs opacity-70">L${m.level} · ${m.organization} · ${m.role} · EV ${m.ev} · FS ${m.freeStrike}</div>
+                        <div class="text-xs opacity-70 flex items-center gap-1.5">
+                            <span>L${m.level}</span> ·
+                            <span>${m.organization}</span> ·
+                            <span class="flex items-center gap-1">${ROLE_ICONS[m.role] || ''} ${m.role}</span> ·
+                            <span>EV ${m.ev}</span> ·
+                            <span>FS ${m.freeStrike}</span>
+                        </div>
                         <div class="text-[10px] opacity-60">${m.size} · Speed ${m.speed} · ${m.source}</div>
                     </div>
                     <button data-action="add-monster" data-monster-id="${m.id}" class="px-2 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 text-xs flex-shrink-0">Add</button>
@@ -348,6 +404,7 @@
                 <div id="tracker-list" class="space-y-2 flex-grow overflow-auto custom-scrollbar pr-1">
                     ${tracker.order.map((id, idx) => renderUnitRow(tracker.units.find(u => u.unitId === id), idx === tracker.turnIndex)).join('')}
                 </div>
+                <textarea id="notes-textarea" class="w-full bg-slate-800 rounded-lg p-2 text-sm mt-4 flex-shrink-0" placeholder="Notas rápidas del encuentro...">${tracker.notes || ''}</textarea>
             </div>
         `;
     }
@@ -395,7 +452,7 @@
         const isBlooded = !isHero && !isDead && u.hp <= u.hpMax * 0.25;
         const isSelected = state.selectedUnitId === u.unitId;
         const pct = isHero ? 100 : Math.max(0, Math.min(100, Math.round((u.hp / u.hpMax) * 100)));
-        const bar = isHero ? 'bg-blue-500' : (pct >= 66 ? "bg-emerald-600" : pct >= 33 ? "bg-amber-500" : "bg-rose-600");
+        const healthColor = getHealthColor(pct);
         const isOpen = state.openUnitCards[u.unitId];
         const activeTab = state.activeUnitTabs[u.unitId] || 'acciones';
         
@@ -420,10 +477,10 @@
                     <div class="flex-grow pr-4">
                         <div data-action="select-unit" data-unit-id="${u.unitId}" class="font-medium text-sm cursor-pointer flex items-center gap-2 ${isDead ? 'line-through' : ''}">
                             <span>${isHero ? `★ ${u.name}` : u.name}</span>
-                            <span class="opacity-60 text-xs">${isHero ? u.label : `L${u.level} · ${u.org} · ${u.role}`}</span>
+                            <span class="opacity-60 text-xs flex items-center gap-1.5">${isHero ? u.label : `L${u.level} · ${u.org} · ${ROLE_ICONS[monster.role] || monster.role}`}</span>
                             <div class="flex gap-1">${conditionIcons}</div>
                         </div>
-                        ${!isHero ? `<div class="h-2 rounded bg-slate-800 mt-1 mb-1 overflow-hidden"><div class="h-2 ${bar}" style="width: ${pct}%"></div></div>` : '<div class="h-2"></div>'}
+                        ${!isHero ? `<div class="h-2 rounded bg-slate-800 mt-1 mb-1 overflow-hidden"><div class="health-bar-inner h-2" style="width: ${pct}%; background-color: ${healthColor};"></div></div>` : '<div class="h-2"></div>'}
                         <div class="flex items-center gap-2">
                             <div class="text-xs opacity-80">
                                 ${!isHero ? `HP ${u.hp}/${u.hpMax} · FS ${u.freeStrike}` : ''}
@@ -468,19 +525,6 @@
         `;
     }
     
-    function renderConditionDropdown(u) {
-        return `
-            <div class="absolute z-10 top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-lg p-2 grid grid-cols-2 gap-2">
-                ${Object.keys(CONDITIONS_MAP).map(c => `
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer" title="${CONDITIONS_MAP[c]}">
-                        <input type="checkbox" data-action="toggle-condition" data-unit-id="${u.unitId}" data-cond="${c}" class="form-checkbox h-4 w-4 rounded bg-slate-800 border-slate-600 text-blue-500" ${u.conditions.includes(c) ? 'checked' : ''}>
-                        ${c.charAt(0).toUpperCase() + c.slice(1)}
-                    </label>
-                `).join('')}
-            </div>
-        `;
-    }
-
     function renderHeroModal() {
         return `
             <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -494,6 +538,19 @@
                         <button data-action="add-heroes" class="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-600">Agregar</button>
                     </div>
                 </div>
+            </div>
+        `;
+    }
+    
+    function renderConditionDropdown(u) {
+        return `
+            <div class="absolute z-10 top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-lg p-2 grid grid-cols-2 gap-2">
+                ${Object.keys(CONDITIONS_MAP).map(c => `
+                    <label class="flex items-center gap-1.5 text-xs cursor-pointer" title="${CONDITIONS_MAP[c]}">
+                        <input type="checkbox" data-action="toggle-condition" data-unit-id="${u.unitId}" data-cond="${c}" class="form-checkbox h-4 w-4 rounded bg-slate-800 border-slate-600 text-blue-500" ${u.conditions.includes(c) ? 'checked' : ''}>
+                        ${c.charAt(0).toUpperCase() + c.slice(1)}
+                    </label>
+                `).join('')}
             </div>
         `;
     }
@@ -513,6 +570,11 @@
             initiativeList.addEventListener('drop', handleDrop);
             initiativeList.addEventListener('dragend', handleDragEnd);
         }
+        
+        const libraryResizer = document.getElementById('library-resizer');
+        if (libraryResizer) libraryResizer.addEventListener('mousedown', initResize);
+        const initiativeResizer = document.getElementById('initiative-resizer');
+        if (initiativeResizer) initiativeResizer.addEventListener('mousedown', initResize);
     }
     
     function handleAppClick(e) {
@@ -589,6 +651,11 @@
             const p = state.builder.find(p => p.instanceId === target.dataset.instanceId);
             if (p) p.count = Math.max(1, parseInt(target.value, 10) || 1);
             render();
+        } else if (target.id === 'notes-textarea') {
+            if(state.tracker) {
+                state.tracker.notes = target.value;
+                saveState();
+            }
         }
     }
 
@@ -624,7 +691,7 @@
         });
         state.tracker = {
             started: true, round: 1, order: units.map(u => u.unitId), turnIndex: 0, units,
-            malice: units.length, log: [{ t: Date.now(), msg: `Encounter started.` }]
+            malice: units.length, log: [{ t: Date.now(), msg: `Encounter started.` }], notes: ""
         };
     }
 
@@ -658,6 +725,15 @@
             state.tracker.malice++;
         }
         input.value = '';
+
+        const unitCard = document.getElementById(`unit-${unitId}`);
+        if (unitCard) {
+            const floatEl = document.createElement('div');
+            floatEl.textContent = `${delta > 0 ? '+' : ''}${delta}`;
+            floatEl.className = `damage-float ${delta > 0 ? 'text-emerald-400' : 'text-rose-500'}`;
+            unitCard.appendChild(floatEl);
+            setTimeout(() => floatEl.remove(), 1000);
+        }
     }
 
     function handleToggleAction(unitId, actionName, isChecked) {
@@ -682,9 +758,9 @@
                 handleAdvanceTurn();
                 saveState();
                 render();
-            }, 300); // Small delay to see the checkmark
+            }, 300);
         } else {
-            render(); // Re-render to update grayscale state
+            render();
         }
     }
 
@@ -807,6 +883,32 @@
         document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
     }
 
+    // --- RESIZER LOGIC ---
+    let currentResizer = null;
+
+    function initResize(e) {
+        currentResizer = e.target;
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResize);
+    }
+
+    function resize(e) {
+        if (!currentResizer) return;
+        const panelId = currentResizer.dataset.panel;
+        const panel = document.getElementById(`${panelId}-container`);
+        if (panel) {
+            const newWidth = (e.clientX - panel.getBoundingClientRect().left);
+            state.panelWidths[panelId] = `${newWidth}px`;
+            panel.style.width = `${newWidth}px`;
+        }
+    }
+
+    function stopResize() {
+        window.removeEventListener('mousemove', resize);
+        window.removeEventListener('mouseup', stopResize);
+        saveState();
+        currentResizer = null;
+    }
 
     // --- INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', () => {
