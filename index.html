@@ -26,6 +26,12 @@
         .unit-card {
             transition: all 0.3s ease-in-out;
         }
+        .dragging {
+            opacity: 0.5;
+        }
+        .drag-over {
+            border-top: 2px solid #10b981; /* emerald-500 */
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 p-4">
@@ -114,9 +120,9 @@
         let mainColSpan = "col-span-6";
         let initiativeColSpan = isInitiativeOpen ? "col-span-3" : "col-span-1";
 
-        if (!isLibraryOpen && isInitiativeOpen) { mainColSpan = "col-span-8"; }
-        if (isLibraryOpen && !isInitiativeOpen) { mainColSpan = "col-span-8"; }
-        if (!isLibraryOpen && !isInitiativeOpen) { mainColSpan = "col-span-10"; }
+        if (!isLibraryOpen && isInitiativeOpen) { mainColSpan = "col-span-8"; libraryColSpan = "col-span-1"; initiativeColSpan = "col-span-3";}
+        if (isLibraryOpen && !isInitiativeOpen) { mainColSpan = "col-span-8"; libraryColSpan = "col-span-3"; initiativeColSpan = "col-span-1";}
+        if (!isLibraryOpen && !isInitiativeOpen) { mainColSpan = "col-span-10"; libraryColSpan = "col-span-1"; initiativeColSpan = "col-span-1";}
 
 
         appContainer.innerHTML = `
@@ -356,18 +362,14 @@
                         ${isInitiativeOpen ? '>>' : '<<'}
                     </button>
                 </div>
-                <div class="flex-grow overflow-auto custom-scrollbar pr-2 ${!isInitiativeOpen ? 'hidden' : ''}">
+                <div id="initiative-list" class="flex-grow overflow-auto custom-scrollbar pr-2 ${!isInitiativeOpen ? 'hidden' : ''}">
                     ${tracker.order.map((id, idx) => {
                         const unit = tracker.units.find(u => u.unitId === id);
                         const isHero = unit.role === 'hero';
                         const isActive = idx === tracker.turnIndex;
                         return `
-                        <div class="p-2 my-1 rounded-lg ${isHero ? 'bg-blue-900/50' : 'bg-slate-800'} ${isActive ? 'ring-2 ring-emerald-500' : ''} text-xs flex items-center justify-between gap-1">
+                        <div draggable="true" data-unit-id="${id}" class="p-2 my-1 rounded-lg ${isHero ? 'bg-blue-900/50' : 'bg-slate-800'} ${isActive ? 'ring-2 ring-emerald-500' : ''} text-xs flex items-center justify-between gap-1 cursor-grab">
                             <span class="truncate"><b>${idx + 1}.</b> ${unit?.name || id}</span>
-                            <div class="flex-shrink-0">
-                                <button data-action="move-initiative" data-idx="${idx}" data-dir="-1" class="px-1 rounded bg-slate-700 hover:bg-slate-600">↑</button>
-                                <button data-action="move-initiative" data-idx="${idx}" data-dir="1" class="px-1 rounded bg-slate-700 hover:bg-slate-600">↓</button>
-                            </div>
                         </div>
                     `}).join('')}
                 </div>
@@ -471,6 +473,15 @@
         appContainer.addEventListener('input', handleAppInput);
         appContainer.addEventListener('change', handleAppChange);
         modalContainer.addEventListener('click', handleAppClick);
+        
+        const initiativeList = document.getElementById('initiative-list');
+        if (initiativeList) {
+            initiativeList.addEventListener('dragstart', handleDragStart);
+            initiativeList.addEventListener('dragover', handleDragOver);
+            initiativeList.addEventListener('dragleave', handleDragLeave);
+            initiativeList.addEventListener('drop', handleDrop);
+            initiativeList.addEventListener('dragend', handleDragEnd);
+        }
     }
     
     function handleAppClick(e) {
@@ -675,6 +686,53 @@
         
         state.isHeroModalOpen = false;
     }
+
+    // --- DRAG & DROP LOGIC ---
+    let draggedUnitId = null;
+
+    function handleDragStart(e) {
+        draggedUnitId = e.target.dataset.unitId;
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        const target = e.target.closest('[draggable]');
+        if (target && target.dataset.unitId !== draggedUnitId) {
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            target.classList.add('drag-over');
+        }
+    }
+    
+    function handleDragLeave(e) {
+        e.target.closest('[draggable]')?.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        const target = e.target.closest('[draggable]');
+        if (target && draggedUnitId) {
+            const targetUnitId = target.dataset.unitId;
+            const { order } = state.tracker;
+            const draggedIndex = order.indexOf(draggedUnitId);
+            const targetIndex = order.indexOf(targetUnitId);
+            
+            if (draggedIndex !== -1 && targetIndex !== -1) {
+                const [draggedItem] = order.splice(draggedIndex, 1);
+                order.splice(targetIndex, 0, draggedItem);
+                saveState();
+                render();
+            }
+        }
+        draggedUnitId = null;
+    }
+    
+    function handleDragEnd(e) {
+        document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+
 
     // --- INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', () => {
