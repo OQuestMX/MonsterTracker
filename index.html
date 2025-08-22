@@ -76,8 +76,34 @@
     <div id="modal-container"></div>
 
     <script>
-    // --- DATA (SEED MONSTERS) ---
-    const SEED_MONSTERS=[{id:"orc-godcaller-platoon-l1",name:"Orc Godcaller",level:1,organization:"platoon",role:"support",ev:6,stamina:30,freeStrike:3,size:"1M",speed:6,keywords:["humanoid","orc"],source:"User Image",attributes:{might:1,agility:0,reason:0,intuition:1,presence:2},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Relentless",text:"If the godcaller is reduced to 0 Stamina, they can make a free strike before dying. If the target of the free strike is reduced to 0 Stamina, the godcaller is reduced to 1 Stamina instead."}],abilities:[{id:"power-chord",type:"signature",name:"Power Chord 2d10 + 2",action:"main",distance:"melee 1 or ranged 10",keywords:["Magic","Melee","Ranged","Strike"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"5 sonic damage"},{threshold:"12-16",effect:"7 sonic damage"},{threshold:"17+",effect:"9 sonic damage; P<2 weakened (save ends)"}]},{id:"cadenza",type:"action",name:"Cadenza",action:"main",distance:"ranged 10",keywords:["Magic","Ranged"],text:"One ally. Effect: The target moves up to their speed and can use a main action. 3 Malice: The godcaller targets a second ally.",malice:3},{id:"rallying-ostinato",type:"maneuver",name:"Rallying Ostinato",action:"maneuver",distance:"ranged 10",malice:2,keywords:["Magic","Ranged"],text:"Self and three allies. Effect: Each target regains 15 Stamina and ignores difficult terrain until the end of the encounter."}]},{id:"human-storm-mage-platoon-l3",name:"Human Storm Mage",level:3,organization:"platoon",role:"controller",ev:10,stamina:40,freeStrike:5,size:"1M",speed:5,keywords:["human","humanoid"],source:"User Image",attributes:{might:0,agility:0,reason:2,intuition:0,presence:1},immunities:["Corruption 3","Psychic 3"],weaknesses:[],resistances:[],traits:[{name:"Arcane Shield",text:"Any melee ability targeting the storm mage takes a bane. Additionally, whenever the mage takes damage from an adjacent enemy, the enemy takes 2 lightning damage, and if they have R<1 they are pushed up to 2 squares."},{name:"Supernatural Insight",text:"The storm mage ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"lightning-bolt",type:"signature",name:"Lightning Bolt 2d10 + 2",action:"main",distance:"ranged 15",keywords:["Magic","Ranged","Strike"],text:"One creature or object. 5 Malice: The ability loses the Ranged and Strike keywords, takes the Area keyword, and is a 10 x 1 line within 15 that targets each enemy and object in the area.",malice:5,tiers:[{threshold:"≤11",effect:"7 lightning damage"},{threshold:"12-16",effect:"10 lightning damage"},{threshold:"17+",effect:"13 lightning damage"}]},{id:"gust-of-wind",type:"maneuver",name:"Gust of Wind 2d10 + 2",action:"maneuver",area:"5 cube within 1",malice:3,keywords:["Area","Magic"],text:"Each enemy and object in the area. Effect: The gust of wind disperses gas or vapor and extinguishes any flames, including supernatural effects.",tiers:[{threshold:"≤11",effect:"Slide 2; M<0 slowed (save ends)"},{threshold:"12-16",effect:"Slide 4; M<1 slowed (save ends)"},{threshold:"17+",effect:"Slide 6; M<2 slowed (save ends)"}]}]},{id:"hobgoblin-burning-witch-platoon-l4",name:"Hobgoblin Burning Witch",level:4,organization:"platoon",role:"controller",ev:12,stamina:50,freeStrike:5,size:"1M",speed:5,keywords:["goblin","hobgoblin","humanoid","infernal"],source:"User Image",notes:{movement:"Teleport"},attributes:{might:0,agility:1,reason:2,intuition:2,presence:3},immunities:["Fire"],weaknesses:[],resistances:[],traits:[{name:"Infernal Ichor",text:"When the burning witch is reduced to 0 Stamina, they spray burning blood. Each creature adjacent to the burning witch takes 3 fire damage."}],abilities:[{id:"soul-burn",type:"signature",name:"Soul Burn 2d10 + 3",action:"main",distance:"ranged 10",keywords:["Magic","Ranged","Strike"],text:"Two creatures or objects. 2 Malice: Each target who has P<2 is weakened (save ends). Any enemy who starts their turn within 3 squares of a target weakened this way and who has P<2 is weakened (save ends).",malice:2,tiers:[{threshold:"≤11",effect:"4 corruption or fire damage"},{threshold:"12-16",effect:"6 corruption or fire damage"},{threshold:"17+",effect:"8 corruption or fire damage"}]},{id:"burning-legion",type:"maneuver",name:"Burning Legion",action:"maneuver",distance:"ranged 10",malice:1,keywords:["Magic","Ranged"],text:"Three creatures. Effect: Each target can teleport up to 5 squares. Each creature adjacent to a target at their destination takes 3 fire damage."}]},{id:"goblin-spinecleaver-minion-l1",name:"Goblin Spinecleaver (Squad)",level:1,organization:"minion",role:"brute",ev:3,stamina:5,freeStrike:2,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.161–162",minion:!0,minionPerSquad:4,notes:{movement:"Climb",withCaptain:"+1 damage bonus to strikes"},attributes:{might:2,agility:0,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The spinecleaver doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"axe",type:"signature",name:"Axe 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object per minion.",tiers:[{threshold:"≤11",effect:"2 damage; push 1"},{threshold:"12–16",effect:"4 damage; push 3"},{threshold:"17+",effect:"5 damage; push 4"}]}]},{id:"goblin-sniper-minion-l1",name:"Goblin Sniper (Squad)",level:1,organization:"minion",role:"artillery",ev:3,stamina:3,freeStrike:2,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.161",minion:!0,minionPerSquad:4,notes:{movement:"Climb",withCaptain:"+5 bonus to ranged distance"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The sniper doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"bow",type:"signature",name:"Bow 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Ranged","Strike","Weapon"],text:"One creature or object per minion. If the sniper doesn’t use a move action this turn, this ability gains an edge.",tiers:[{threshold:"≤11",effect:"2 damage"},{threshold:"12–16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]}]},{id:"goblin-assassin-horde-l1",name:"Goblin Assassin",level:1,organization:"horde",role:"ambusher",ev:3,stamina:15,freeStrike:2,size:"1S",speed:6,keywords:["goblin","humanoid"],source:"Monsters PDF p.162",notes:{movement:"Climb"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-2},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The assassin doesn’t provoke opportunity attacks by moving."},{name:"Slip Away",text:"The assassin can attempt to hide even while observed."}],abilities:[{id:"stab",type:"signature",name:"Sword Stab 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"4 damage"},{threshold:"12–16",effect:"6 damage"},{threshold:"17+",effect:"7 damage"}],onHit:"If this ability gains an edge or has a double edge, it deals an extra 2 damage."},{id:"chains",type:"action",name:"Shadow Chains 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Magic","Ranged","Strike"],text:"Three creatures.",malice:3,tiers:[{threshold:"≤11",effect:"2 corruption damage; A<0 restrained (save ends)"},{threshold:"12–16",effect:"4 corruption damage; A<1 restrained (save ends)"},{threshold:"17+",effect:"5 corruption damage; A<2 restrained (save ends)"}]}]},{id:"goblin-cursespitter-horde-l1",name:"Goblin Cursespitter",level:1,organization:"horde",role:"hexer",ev:3,stamina:10,freeStrike:1,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.163",notes:{movement:"Climb"},attributes:{might:-2,agility:1,reason:0,intuition:2,presence:0},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The cursespitter doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"eye",type:"signature",name:"Eye of Surlach 2d10 + 2",action:"main",distance:"ranged 15",keywords:["Magic","Ranged","Strike"],text:"One creature.",tiers:[{threshold:"≤11",effect:"3 corruption damage; K<0 weakened (save ends)"},{threshold:"12–16",effect:"4 corruption damage; K<1 weakened (save ends)"},{threshold:"17+",effect:"5 corruption damage; K<2 weakened (save ends)"}]},{id:"hex",type:"maneuver",name:"Dizzying Hex 2d10 + 2",action:"maneuver",distance:"ranged 10",malice:1,keywords:["Magic","Ranged","Strike"],text:"One creature.",tiers:[{threshold:"≤11",effect:"K<0 prone"},{threshold:"12–16",effect:"K<1 prone and can’t stand (EoT)"},{threshold:"17+",effect:"Prone; K<2 can’t stand (save ends)"}]}]},{id:"goblin-warrior-horde-l1",name:"Goblin Warrior",level:1,organization:"horde",role:"harrier",ev:3,stamina:15,freeStrike:1,size:"1S",speed:6,keywords:["goblin","humanoid"],source:"Monsters PDF p.164",notes:{movement:"Climb"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The warrior doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"spear",type:"signature",name:"Spear Charge 2d10 + 2",action:"main",distance:"melee 1",keywords:["Charge","Melee","Strike","Weapon"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"3 damage"},{threshold:"12–16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]},{id:"bury",type:"action",name:"Bury the Point 2d10 + 2",action:"main",distance:"melee 1",malice:2,keywords:["Melee","Strike","Weapon"],text:"One creature.",tiers:[{threshold:"≤11",effect:"5 damage; M<0 bleeding (save ends)"},{threshold:"12–16",effect:"6 damage; M<1 bleeding (save ends)"},{threshold:"17+",effect:"7 damage; M<3 bleeding (save ends)"}]}]}];
+    // --- DATA (SEED MONSTERS & LAIRS) ---
+    const SEED_MONSTERS=[
+        {id:"grilp-minion-l4",name:"Grilp",level:4,ac:19,organization:"minion",role:"ambusher",ev:6,stamina:8,freeStrike:3,size:"1T",speed:7,keywords:["devil","hobgoblin","infernal"],source:"Monsters PDF p.172",minion:true,minionPerSquad:4,notes:{movement:"Fly",withCaptain:"+2 bonus to speed"},attributes:{might:-1,agility:3,reason:0,intuition:1,presence:0},immunities:["Fire 2"],weaknesses:[],resistances:[],traits:[{name:"Bat Out Of Hell",text:"Any enemy who makes a saving throw takes a −1 penalty to the saving throw for each grilp adjacent to them."},{name:"Shifting Camouflage",text:"The grilp has concealment from all creatures."}],abilities:[{id:"flyby-bite",type:"signature",name:"Flyby Bite 2d10 + 3",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object per minion. Effect: The grilp moves up to their speed and can attempt to hide.",tiers:[{threshold:"≤11",effect:"3 damage"},{threshold:"12–16",effect:"5 damage"},{threshold:"17+",effect:"7 damage; the grilp shifts up to 2 squares"}]}]},
+        {id:"hobgoblin-bloodlord-l6",name:"Hobgoblin Bloodlord",level:6,ac:19,organization:"leader",role:"none",ev:32,stamina:180,freeStrike:7,size:"1M",speed:6,keywords:["goblin","hobgoblin","humanoid","infernal"],source:"Monsters PDF p.178–179",notes:{movement:"Teleport"},attributes:{might:4,agility:2,reason:2,intuition:3,presence:3},immunities:["Fire 6"],weaknesses:[],resistances:[],traits:[{name:"Infernal Ichor",text:"When the bloodlord is reduced to 0 Stamina, they spray burning blood. Each creature adjacent to the bloodlord takes 3 fire damage."},{name:"End Effect",text:"At the end of each of their turns, the bloodlord can take 10 damage to end one effect on them that can be ended by a saving throw. This damage can’t be reduced in any way."}],abilities:[{id:"soul-sword",type:"signature",name:"Soul Sword 2d10 + 4",action:"main",distance:"melee 1",keywords:["Magic","Melee","Strike","Weapon"],text:"Two creatures or objects.",malice:2,tiers:[{threshold:"≤11",effect:"11 corruption damage; P<2 bleeding (save ends)"},{threshold:"12–16",effect:"16 corruption damage; P<3 bleeding (save ends)"},{threshold:"17+",effect:"19 corruption damage; P<4 bleeding (save ends)"}]},{id:"soul-sword-mark",type:"action",name:"Soul Sword — Mark",action:"none",keywords:[],text:"Malice rider for Soul Sword: Each target is marked until the end of the encounter or death. Allies gain an edge on strikes against any target marked this way. Up to three marks; applying a new one beyond the limit ends the oldest."},{id:"take-point",type:"maneuver",name:"Take Point!",action:"maneuver",distance:"ranged 10",keywords:["Ranged"],text:"One ally. Effect: The target moves up to their speed and can use a signature ability."},{id:"army-from-blood",type:"triggered",name:"An Army From Blood",action:"triggered",distance:"ranged 10",keywords:["Ranged"],malice:3,trigger:"A non-minion hobgoblin within distance takes damage.",text:"Three hobgoblin recruits manifest from the target’s blood into unoccupied spaces adjacent to the target."}],villainActions:[{name:"Advance!",text:"Shift up to speed; during/after movement use Zweihander Swing twice."},{name:"Back!",text:"Area 5 burst; slide each enemy up to 5 squares."},{name:"I Am Fire! I Am Death! 2d10 + 4",text:"Area 5 burst; Each enemy takes fire damage and is pushed and made prone based on Presence. The bloodlord is wreathed in black flames for the encounter."}]},
+        {id:"human-archer-minion-l1",name:"Human Archer (Squad)",level:1,ac:15,organization:"minion",role:"artillery",ev:3,stamina:3,freeStrike:2,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.181",attributes:{might:0,agility:2,reason:0,intuition:0,presence:0},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],notes:{withCaptain:"+5 bonus to ranged distance"},traits:[{name:"Supernatural Insight",text:"The archer ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"crossbow",type:"signature",name:"Crossbow 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Ranged","Strike","Weapon"],text:"One creature or object per minion.",tiers:[{threshold:"≤11",effect:"2 damage"},{threshold:"12-16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]}]},
+        {id:"human-death-acolyte-minion-l1",name:"Human Death Acolyte (Squad)",level:1,ac:15,organization:"minion",role:"hexer",ev:3,stamina:3,freeStrike:1,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.181",attributes:{might:0,agility:1,reason:0,intuition:0,presence:2},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],notes:{withCaptain:"+5 bonus to ranged distance"},traits:[{name:"Supernatural Insight",text:"The death acolyte ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"necrotic-bolt",type:"signature",name:"Necrotic Bolt 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Ranged","Strike","Weapon"],text:"One creature or object per minion. Effect: One creature within 5 squares regains 1 Stamina.",tiers:[{threshold:"≤11",effect:"1 corruption damage"},{threshold:"12-16",effect:"2 corruption damage"},{threshold:"17+",effect:"3 corruption damage"}]}]},
+        {id:"human-apprentice-mage-minion-l2",name:"Human Apprentice Mage (Squad)",level:2,ac:17,organization:"minion",role:"controller",ev:4,stamina:4,freeStrike:2,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.181",attributes:{might:0,agility:1,reason:0,intuition:0,presence:2},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],notes:{withCaptain:"+5 bonus to speed"},traits:[{name:"Supernatural Insight",text:"The apprentice mage ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"lightning-strike",type:"signature",name:"Lightning Strike 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Magic","Ranged","Strike"],text:"One creature or object per minion. Effect: If the apprentice mage doesn’t use a maneuver or a move action this turn, the target is also slowed (EoT).",tiers:[{threshold:"≤11",effect:"2 lightning damage"},{threshold:"12-16",effect:"3 lightning damage"},{threshold:"17+",effect:"5 lightning damage"}]}]},
+        {id:"human-guard-minion-l1",name:"Human Guard (Squad)",level:1,ac:15,organization:"minion",role:"brute",ev:3,stamina:5,freeStrike:2,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.182",attributes:{might:0,agility:2,reason:0,intuition:0,presence:1},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],notes:{withCaptain:"Gain an edge on strikes"},traits:[{name:"Supernatural Insight",text:"The guard ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"halberd",type:"signature",name:"Halberd 2d10 + 2",action:"main",distance:"melee 2",keywords:["Melee","Strike","Weapon"],text:"One creature or object per minion. Effect: If the guard is flanked, they can make a free strike against a different adjacent target.",tiers:[{threshold:"≤11",effect:"2 damage"},{threshold:"12-16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]}]},
+        {id:"human-rogue-minion-l1",name:"Human Rogue (Squad)",level:1,ac:15,organization:"minion",role:"ambusher",ev:3,stamina:4,freeStrike:2,size:"1M",speed:7,keywords:["human","humanoid"],source:"Monsters PDF p.182",attributes:{might:0,agility:2,reason:0,intuition:0,presence:0},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],notes:{withCaptain:"Gain an edge on strikes"},traits:[{name:"Supernatural Insight",text:"The rogue ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"concealed-dagger",type:"signature",name:"Concealed Dagger 2d10 + 2",action:"main",distance:"melee 1 or ranged 5",keywords:["Melee","Ranged","Strike","Weapon"],text:"One creature or object per minion. Effect: If disguised or hidden, deals +3 damage.",tiers:[{threshold:"≤11",effect:"1 damage"},{threshold:"12-16",effect:"2 damage"},{threshold:"17+",effect:"3 damage"}]}]},
+        {id:"human-raider-minion-l1",name:"Human Raider (Squad)",level:1,ac:15,organization:"minion",role:"harrier",ev:3,stamina:4,freeStrike:1,size:"1M",speed:7,keywords:["human","humanoid"],source:"Monsters PDF p.182",attributes:{might:0,agility:2,reason:0,intuition:0,presence:0},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],notes:{withCaptain:"Gain an edge on strikes"},traits:[{name:"Supernatural Insight",text:"The raider ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"handaxes",type:"signature",name:"Handaxes 2d10 + 2",action:"main",distance:"melee 1",keywords:["Charge","Melee","Strike","Weapon"],text:"One creature or object per minion. Effect: If used as part of a charge, make a ranged free strike before the ability.",tiers:[{threshold:"≤11",effect:"1 damage"},{threshold:"12-16",effect:"2 damage"},{threshold:"17+",effect:"3 damage"}]}]},
+        {id:"human-brawler-platoon-l1",name:"Human Brawler",level:1,ac:15,organization:"platoon",role:"brute",ev:6,stamina:40,freeStrike:4,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.182",attributes:{might:2,agility:1,reason:0,intuition:0,presence:0},immunities:["Corruption 2","Psychic 2"],weaknesses:[],resistances:[],traits:[{name:"Shoot the Hostage",text:"Halve damage from any strike while grabbing a size 1S+ creature; the grabbed target takes the remainder."},{name:"Supernatural Insight",text:"The brawler ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"haymaker",type:"signature",name:"Haymaker 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object. Effect: If target is already grabbed, +2 damage.",tiers:[{threshold:"≤11",effect:"6 damage"},{threshold:"12-16",effect:"9 damage"},{threshold:"17+",effect:"12 damage; M<2 grabbed and target takes a bane on Escape Grab"}]},{id:"throw",type:"maneuver",name:"Throw",action:"maneuver",distance:"melee 1",keywords:[],text:"One creature grabbed by the brawler. Effect: Push the target up to 5 squares.",malice:1}]},
+        {id:"human-scoundrel-platoon-l1",name:"Human Scoundrel",level:1,ac:15,organization:"platoon",role:"ambusher",ev:6,stamina:30,freeStrike:4,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.183",attributes:{might:0,agility:2,reason:0,intuition:0,presence:1},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],traits:[{name:"Supernatural Insight",text:"The scoundrel ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"rapier-and-dagger",type:"signature",name:"Rapier and Dagger 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object. 2 Malice: If this ability has an edge/double edge, +2 damage.",tiers:[{threshold:"≤11",effect:"6 damage"},{threshold:"12-16",effect:"9 damage"},{threshold:"17+",effect:"12 damage"}]},{id:"dagger-storm",type:"action",name:"Dagger Storm",action:"main",keywords:[],text:"Use Rapier and Dagger against up to three targets; shift up to 2 squares before or after each strike.",malice:5}]},
+        {id:"human-trickshot-platoon-l1",name:"Human Trickshot",level:1,ac:15,organization:"platoon",role:"artillery",ev:6,stamina:20,freeStrike:4,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.184",attributes:{might:0,agility:2,reason:0,intuition:1,presence:0},immunities:["Corruption 1","Psychic 1"],weaknesses:[],resistances:[],traits:[{name:"Supernatural Insight",text:"The trickshot ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"trick-crossbow",type:"signature",name:"Trick Crossbow 2d10 + 2",action:"main",distance:"melee 1 or ranged 15",keywords:["Melee","Ranged","Strike","Weapon"],text:"One creature or object. Ignores cover and concealment. 3 Malice: targets one additional target.",tiers:[{threshold:"≤11",effect:"6 damage"},{threshold:"12-16",effect:"9 damage"},{threshold:"17+",effect:"12 damage"}]}]},
+        {id:"human-blackguard-leader-l1",name:"Human Blackguard",level:1,ac:15,organization:"leader",role:"defender",ev:12,stamina:80,freeStrike:4,size:"1M",speed:5,keywords:["human","humanoid"],source:"Monsters PDF p.184–186",attributes:{might:3,agility:2,reason:2,intuition:0,presence:2},immunities:["Corruption 2","Psychic 2"],weaknesses:[],resistances:[],traits:[{name:"End Effect",text:"At the end of each turn, take 5 damage to end one effect that can be ended by a save (damage can’t be reduced)."},{name:"Supernatural Insight",text:"Ignores concealment granted by a supernatural effect."}],abilities:[{id:"zweihander-swing",type:"signature",name:"Zweihander Swing 2d10 + 2",action:"main",area:"1 burst",keywords:["Area","Weapon"],text:"Each enemy in the area. Effect: One ally within 10 squares can make a free strike. 1 Malice: that ally can use their signature ability instead.",tiers:[{threshold:"≤11",effect:"3 damage; M<1 slowed (save ends)"},{threshold:"12-16",effect:"6 damage; M<2 slowed (save ends)"},{threshold:"17+",effect:"8 damage; M<3 slowed (save ends)"}]},{id:"you-mark",type:"maneuver",name:"You!",action:"maneuver",distance:"ranged 10",keywords:["Ranged"],text:"One enemy. Effect: Target is marked until the start of the blackguard’s next turn; the blackguard and allies gain an edge vs. marked targets."},{id:"parry",type:"triggered",name:"Parry!",action:"triggered",distance:"melee 1",keywords:["Melee"],trigger:"A creature makes a strike against the blackguard or an adjacent ally.",text:"Self or one ally. Effect: Halve the damage."}],villainActions:[{name:"Advance!",text:"Shift up to speed; during/after movement use Zweihander Swing twice."},{name:"Back!",text:"Area 5 burst; slide each enemy up to 5 squares."},{name:"I Can Throw My Blade and So Should You!",text:"Area 3 cube within 5; use Zweihander Swing against each target; each ally within 5 squares of the area can then make a free strike (one target per ally)."}]},
+        {id:"orc-godcaller-platoon-l1",name:"Orc Godcaller",level:1,ac:15,organization:"platoon",role:"support",ev:6,stamina:30,freeStrike:3,size:"1M",speed:6,keywords:["humanoid","orc"],source:"User Image",attributes:{might:1,agility:0,reason:0,intuition:1,presence:2},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Relentless",text:"If the godcaller is reduced to 0 Stamina, they can make a free strike before dying. If the target of the free strike is reduced to 0 Stamina, the godcaller is reduced to 1 Stamina instead."}],abilities:[{id:"power-chord",type:"signature",name:"Power Chord 2d10 + 2",action:"main",distance:"melee 1 or ranged 10",keywords:["Magic","Melee","Ranged","Strike"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"5 sonic damage"},{threshold:"12-16",effect:"7 sonic damage"},{threshold:"17+",effect:"9 sonic damage; P<2 weakened (save ends)"}]},{id:"cadenza",type:"action",name:"Cadenza",action:"main",distance:"ranged 10",keywords:["Magic","Ranged"],text:"One ally. Effect: The target moves up to their speed and can use a main action. 3 Malice: The godcaller targets a second ally.",malice:3},{id:"rallying-ostinato",type:"maneuver",name:"Rallying Ostinato",action:"maneuver",distance:"ranged 10",malice:2,keywords:["Magic","Ranged"],text:"Self and three allies. Effect: Each target regains 15 Stamina and ignores difficult terrain until the end of the encounter."}]},{id:"human-storm-mage-platoon-l3",name:"Human Storm Mage",level:3,ac:19,organization:"platoon",role:"controller",ev:10,stamina:40,freeStrike:5,size:"1M",speed:5,keywords:["human","humanoid"],source:"User Image",attributes:{might:0,agility:0,reason:2,intuition:0,presence:1},immunities:["Corruption 3","Psychic 3"],weaknesses:[],resistances:[],traits:[{name:"Arcane Shield",text:"Any melee ability targeting the storm mage takes a bane. Additionally, whenever the mage takes damage from an adjacent enemy, the enemy takes 2 lightning damage, and if they have R<1 they are pushed up to 2 squares."},{name:"Supernatural Insight",text:"The storm mage ignores concealment if it’s granted by a supernatural effect."}],abilities:[{id:"lightning-bolt",type:"signature",name:"Lightning Bolt 2d10 + 2",action:"main",distance:"ranged 15",keywords:["Magic","Ranged","Strike"],text:"One creature or object. 5 Malice: The ability loses the Ranged and Strike keywords, takes the Area keyword, and is a 10 x 1 line within 15 that targets each enemy and object in the area.",tiers:[{threshold:"≤11",effect:"7 lightning damage"},{threshold:"12-16",effect:"10 lightning damage"},{threshold:"17+",effect:"13 lightning damage"}]},{id:"gust-of-wind",type:"maneuver",name:"Gust of Wind 2d10 + 2",action:"maneuver",area:"5 cube within 1",malice:3,keywords:["Area","Magic"],text:"Each enemy and object in the area. Effect: The gust of wind disperses gas or vapor and extinguishes any flames, including supernatural effects.",tiers:[{threshold:"≤11",effect:"Slide 2; M<0 slowed (save ends)"},{threshold:"12-16",effect:"Slide 4; M<1 slowed (save ends)"},{threshold:"17+",effect:"Slide 6; M<2 slowed (save ends)"}]}]},{id:"hobgoblin-burning-witch-platoon-l4",name:"Hobgoblin Burning Witch",level:4,ac:19,organization:"platoon",role:"controller",ev:12,stamina:50,freeStrike:5,size:"1M",speed:5,keywords:["goblin","hobgoblin","humanoid","infernal"],source:"User Image",notes:{movement:"Teleport"},attributes:{might:0,agility:1,reason:2,intuition:2,presence:3},immunities:["Fire"],weaknesses:[],resistances:[],traits:[{name:"Infernal Ichor",text:"When the burning witch is reduced to 0 Stamina, they spray burning blood. Each creature adjacent to the burning witch takes 3 fire damage."}],abilities:[{id:"soul-burn",type:"signature",name:"Soul Burn 2d10 + 3",action:"main",distance:"ranged 10",keywords:["Magic","Ranged","Strike"],text:"Two creatures or objects. 2 Malice: Each target who has P<2 is weakened (save ends). Any enemy who starts their turn within 3 squares of a target weakened this way and who has P<2 is weakened (save ends).",malice:2,tiers:[{threshold:"≤11",effect:"4 corruption or fire damage"},{threshold:"12-16",effect:"6 corruption or fire damage"},{threshold:"17+",effect:"8 corruption or fire damage"}]},{id:"burning-legion",type:"maneuver",name:"Burning Legion",action:"maneuver",distance:"ranged 10",malice:1,keywords:["Magic","Ranged"],text:"Three creatures. Effect: Each target can teleport up to 5 squares. Each creature adjacent to a target at their destination takes 3 fire damage."}]},{id:"goblin-spinecleaver-minion-l1",name:"Goblin Spinecleaver (Squad)",level:1,ac:15,organization:"minion",role:"brute",ev:3,stamina:5,freeStrike:2,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.161–162",minion:!0,minionPerSquad:4,notes:{movement:"Climb",withCaptain:"+1 damage bonus to strikes"},attributes:{might:2,agility:0,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The spinecleaver doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"axe",type:"signature",name:"Axe 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object per minion.",tiers:[{threshold:"≤11",effect:"2 damage; push 1"},{threshold:"12–16",effect:"4 damage; push 3"},{threshold:"17+",effect:"5 damage; push 4"}]}]},{id:"goblin-sniper-minion-l1",name:"Goblin Sniper (Squad)",level:1,ac:15,organization:"minion",role:"artillery",ev:3,stamina:3,freeStrike:2,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.161",minion:!0,minionPerSquad:4,notes:{movement:"Climb",withCaptain:"+5 bonus to ranged distance"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The sniper doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"bow",type:"signature",name:"Bow 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Ranged","Strike","Weapon"],text:"One creature or object per minion. If the sniper doesn’t use a move action this turn, this ability gains an edge.",tiers:[{threshold:"≤11",effect:"2 damage"},{threshold:"12–16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]}]},{id:"goblin-assassin-horde-l1",name:"Goblin Assassin",level:1,ac:15,organization:"horde",role:"ambusher",ev:3,stamina:15,freeStrike:2,size:"1S",speed:6,keywords:["goblin","humanoid"],source:"Monsters PDF p.162",notes:{movement:"Climb"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-2},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The assassin doesn’t provoke opportunity attacks by moving."},{name:"Slip Away",text:"The assassin can attempt to hide even while observed."}],abilities:[{id:"stab",type:"signature",name:"Sword Stab 2d10 + 2",action:"main",distance:"melee 1",keywords:["Melee","Strike","Weapon"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"4 damage"},{threshold:"12–16",effect:"6 damage"},{threshold:"17+",effect:"7 damage"}],onHit:"If this ability gains an edge or has a double edge, it deals an extra 2 damage."},{id:"chains",type:"action",name:"Shadow Chains 2d10 + 2",action:"main",distance:"ranged 10",keywords:["Magic","Ranged","Strike"],text:"Three creatures.",malice:3,tiers:[{threshold:"≤11",effect:"2 corruption damage; A<0 restrained (save ends)"},{threshold:"12–16",effect:"4 corruption damage; A<1 restrained (save ends)"},{threshold:"17+",effect:"5 corruption damage; A<2 restrained (save ends)"}]}]},{id:"goblin-cursespitter-horde-l1",name:"Goblin Cursespitter",level:1,ac:15,organization:"horde",role:"hexer",ev:3,stamina:10,freeStrike:1,size:"1S",speed:5,keywords:["goblin","humanoid"],source:"Monsters PDF p.163",notes:{movement:"Climb"},attributes:{might:-2,agility:1,reason:0,intuition:2,presence:0},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The cursespitter doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"eye",type:"signature",name:"Eye of Surlach 2d10 + 2",action:"main",distance:"ranged 15",keywords:["Magic","Ranged","Strike"],text:"One creature.",tiers:[{threshold:"≤11",effect:"3 corruption damage; K<0 weakened (save ends)"},{threshold:"12–16",effect:"4 corruption damage; K<1 weakened (save ends)"},{threshold:"17+",effect:"5 corruption damage; K<2 weakened (save ends)"}]},{id:"hex",type:"maneuver",name:"Dizzying Hex 2d10 + 2",action:"maneuver",distance:"ranged 10",malice:1,keywords:["Magic","Ranged","Strike"],text:"One creature.",tiers:[{threshold:"≤11",effect:"K<0 prone"},{threshold:"12–16",effect:"K<1 prone and can’t stand (EoT)"},{threshold:"17+",effect:"Prone; K<2 can’t stand (save ends)"}]}]},{id:"goblin-warrior-horde-l1",name:"Goblin Warrior",level:1,ac:15,organization:"horde",role:"harrier",ev:3,stamina:15,freeStrike:1,size:"1S",speed:6,keywords:["goblin","humanoid"],source:"Monsters PDF p.164",notes:{movement:"Climb"},attributes:{might:-2,agility:2,reason:0,intuition:0,presence:-1},immunities:[],weaknesses:[],resistances:[],traits:[{name:"Crafty",text:"The warrior doesn’t provoke opportunity attacks by moving."}],abilities:[{id:"spear",type:"signature",name:"Spear Charge 2d10 + 2",action:"main",distance:"melee 1",keywords:["Charge","Melee","Strike","Weapon"],text:"One creature or object.",tiers:[{threshold:"≤11",effect:"3 damage"},{threshold:"12–16",effect:"4 damage"},{threshold:"17+",effect:"5 damage"}]},{id:"bury",type:"action",name:"Bury the Point 2d10 + 2",action:"main",distance:"melee 1",malice:2,keywords:["Melee","Strike","Weapon"],text:"One creature.",tiers:[{threshold:"≤11",effect:"5 damage; M<0 bleeding (save ends)"},{threshold:"12–16",effect:"6 damage; M<1 bleeding (save ends)"},{threshold:"17+",effect:"7 damage; M<3 bleeding (save ends)"}]}]}];
+    
+    const SEED_LAIRS = [
+        { id: "goblin-cave", name: "Caverna de Goblins", lairActions: [
+            { id: "bats", name: "Nube de Murciélagos", desc: "Los héroes en un área de 10 pies deben superar una salvación de CON DC 13 o quedan cegados por un turno." },
+            { id: "bridge", name: "Puente desvencijado", desc: "Quienes estén sobre el puente deben hacer una salvación de DEX DC 12 o caer." },
+            { id: "rocks", name: "Rocas que caen", desc: "Caen estalactitas sobre un héroe aleatorio (DC 14 salvación de DEX para mitad de daño)." }
+        ]},
+        { id: "orc-fortress", name: "Fortaleza Orca", lairActions: [
+            { id: "trap", name: "Trampa de Foso", desc: "Un héroe aleatorio debe superar una salvación de DEX DC 15 o caer en un foso de 10 pies." },
+            { id: "archers", name: "Alerta de Arqueros", desc: "Una lluvia de flechas cae sobre el campo (DC 12 salvación de DEX para mitad de daño)." },
+            { id: "oil", name: "Caldero de Aceite", desc: "Se vierte aceite hirviendo en un área de 5 pies (DC 13 salvación de DEX para mitad de daño)." }
+        ]}
+    ];
 
     const CONDITIONS_MAP = {
         blinded: "Una criatura cegada no puede ver y falla automáticamente cualquier prueba de habilidad que requiera vista. Las tiradas de ataque contra la criatura tienen ventaja, y las tiradas de ataque de la criatura tienen desventaja.",
@@ -88,7 +114,9 @@
         restrained: "Una criatura inmovilizada tiene su velocidad reducida a 0. Las tiradas de ataque contra ella tienen ventaja, y sus tiradas de ataque y salvación de Destreza tienen desventaja.",
         slowed: "Una criatura ralentizada tiene su velocidad reducida a la mitad y tiene un -2 a su CA y a las tiradas de salvación de Destreza.",
         stunned: "Una criatura aturdida está incapacitada, no puede moverse y solo puede hablar de forma vacilante. Falla automáticamente las tiradas de salvación de Fuerza y Destreza. Las tiradas de ataque en su contra tienen ventaja.",
-        weakened: "Una criatura debilitada tiene desventaja en las tiradas de ataque y salvaciones basadas en Fuerza, Destreza o Constitución."
+        weakened: "Una criatura debilitada tiene desventaja en las tiradas de ataque y salvaciones basadas en Fuerza, Destreza o Constitución.",
+        hexed: "Maldito: Elige una habilidad. El objetivo tiene desventaja en las pruebas de esa habilidad.",
+        hunterMarked: "Marca del Cazador: El atacante sabe la ubicación del objetivo y hace daño extra contra él."
     };
     
     const ROLE_ICONS = {
@@ -111,9 +139,10 @@
             isLibraryOpen: true,
             isInitiativeOpen: true,
             builder: [],
+            savedScenes: [],
             tracker: null,
             party: { teamName: "Aventureros", director: "Director del Juego" },
-            filters: { keyword: 'all', organization: 'all', level: 'all', q: '' },
+            filters: { keywords: [], organizations: [], levels: [], q: '' },
             openMonsterCards: {},
             openUnitCards: {},
             activeUnitTabs: {},
@@ -123,11 +152,17 @@
             panelWidths: {
                 library: '33.33%',
                 initiative: '33.33%'
-            }
+            },
+            selectedLairId: null,
+            collapsedRaceGroups: [],
+            isFiltersOpen: true,
         };
         try {
             const loadedState = JSON.parse(localStorage.getItem(LS_KEY));
             state = { ...defaultState, ...(loadedState || {}) };
+            if (!state.savedScenes) { // Ensure savedScenes is an array
+                state.savedScenes = [];
+            }
         } catch (e) {
             console.error("Failed to load state, using defaults:", e);
             state = defaultState;
@@ -153,6 +188,9 @@
     }
     function getMonsterById(id) {
         return SEED_MONSTERS.find(m => m.id === id);
+    }
+    function getLairById(id) {
+        return SEED_LAIRS.find(l => l.id === id);
     }
     function toggleInArray(arr, val) {
         return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
@@ -237,9 +275,9 @@
     }
 
     function renderLibraryPanel() {
-        const { filters, isLibraryOpen } = state;
+        const { filters, isLibraryOpen, collapsedRaceGroups, isFiltersOpen } = state;
         const filterOptions = (() => {
-            const keywords = [...new Set(SEED_MONSTERS.flatMap(m => m.keywords))].sort();
+            const keywords = [...new Set(SEED_MONSTERS.flatMap(m => m.keywords.filter(k => k !== 'humanoid')))].sort();
             const organizations = [...new Set(SEED_MONSTERS.map(m => m.organization))].sort();
             const levels = [...new Set(SEED_MONSTERS.map(m => m.level))].sort((a,b) => a - b);
             return { keywords, organizations, levels };
@@ -247,11 +285,18 @@
 
         const filteredMonsters = SEED_MONSTERS.filter(m => {
             const nameMatch = filters.q === "" || m.name.toLowerCase().includes(filters.q.toLowerCase());
-            const keywordMatch = filters.keyword === 'all' || m.keywords.includes(filters.keyword);
-            const orgMatch = filters.organization === 'all' || m.organization === filters.organization;
-            const levelMatch = filters.level === 'all' || m.level === parseInt(filters.level, 10);
+            const keywordMatch = filters.keywords.length === 0 || m.keywords.some(k => filters.keywords.includes(k));
+            const orgMatch = filters.organizations.length === 0 || filters.organizations.includes(m.organization);
+            const levelMatch = filters.levels.length === 0 || filters.levels.includes(m.level.toString());
             return nameMatch && keywordMatch && orgMatch && levelMatch;
-        }).sort((a, b) => a.name.localeCompare(b.name));
+        });
+
+        const groupedByRace = filteredMonsters.reduce((acc, m) => {
+            const race = m.keywords.find(k => k === 'hobgoblin') || m.keywords.find(k => k !== 'humanoid') || 'other';
+            if (!acc[race]) acc[race] = [];
+            acc[race].push(m);
+            return acc;
+        }, {});
 
         return `
             <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-2 h-full flex flex-col">
@@ -264,25 +309,35 @@
                 <div class="${!isLibraryOpen ? 'hidden' : ''}">
                     <input id="search-input" class="w-full bg-slate-800 rounded-lg px-2 py-1 text-sm" placeholder="Buscar por nombre..." value="${filters.q}" />
                     
-                    <div class="grid grid-cols-3 gap-2 text-xs mt-2">
-                        <select data-filter="keyword" class="w-full bg-slate-800 rounded-lg px-2 py-1">
-                            <option value="all">Raza</option>
-                            ${filterOptions.keywords.map(k => `<option value="${k}" ${filters.keyword === k ? 'selected' : ''}>${k}</option>`).join('')}
-                        </select>
-                        <select data-filter="organization" class="w-full bg-slate-800 rounded-lg px-2 py-1">
-                            <option value="all">Organización</option>
-                            ${filterOptions.organizations.map(o => `<option value="${o}" ${filters.organization === o ? 'selected' : ''}>${o}</option>`).join('')}
-                        </select>
-                        <select data-filter="level" class="w-full bg-slate-800 rounded-lg px-2 py-1">
-                            <option value="all">Nivel</option>
-                            ${filterOptions.levels.map(l => `<option value="${l}" ${filters.level == l ? 'selected' : ''}>${l}</option>`).join('')}
-                        </select>
+                    <div class="text-xs mt-2 space-y-2">
+                        <div data-action="toggle-filters" class="font-bold cursor-pointer">Filtros ${isFiltersOpen ? '▼' : '►'}</div>
+                        <div class="${isFiltersOpen ? '' : 'hidden'}">
+                            <div>
+                                <div class="font-bold">Raza</div>
+                                <div class="flex flex-wrap gap-2 mt-1">${filterOptions.keywords.map(k => `<label class="flex items-center gap-1"><input type="checkbox" data-filter="keywords" value="${k}" ${filters.keywords.includes(k) ? 'checked' : ''}>${k}</label>`).join('')}</div>
+                            </div>
+                            <div>
+                                <div class="font-bold">Organización</div>
+                                <div class="flex flex-wrap gap-2 mt-1">${filterOptions.organizations.map(o => `<label class="flex items-center gap-1"><input type="checkbox" data-filter="organizations" value="${o}" ${filters.organizations.includes(o) ? 'checked' : ''}>${o}</label>`).join('')}</div>
+                            </div>
+                            <div>
+                                <div class="font-bold">Nivel</div>
+                                <div class="flex flex-wrap gap-2 mt-1">${filterOptions.levels.map(l => `<label class="flex items-center gap-1"><input type="checkbox" data-filter="levels" value="${l}" ${filters.levels.includes(l.toString()) ? 'checked' : ''}>${l}</label>`).join('')}</div>
+                            </div>
+                            <button data-action="reset-filters" class="w-full text-center py-1 mt-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs">Limpiar filtros</button>
+                        </div>
                     </div>
-                    <button data-action="reset-filters" class="w-full text-center py-1 mt-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs">Limpiar filtros</button>
                 </div>
 
-                <div class="flex-grow overflow-auto divide-y divide-slate-800 mt-2 custom-scrollbar pr-2 ${!isLibraryOpen ? 'hidden' : ''}">
-                    ${filteredMonsters.map(m => renderMonsterCard(m)).join('')}
+                <div class="flex-grow overflow-auto mt-2 custom-scrollbar pr-2 ${!isLibraryOpen ? 'hidden' : ''}">
+                    ${Object.keys(groupedByRace).sort().map(race => `
+                        <div class="py-1">
+                            <h3 data-action="toggle-race-group" data-race="${race}" class="cursor-pointer text-lg font-bold text-slate-400 sticky top-0 bg-slate-900 py-1">${race.charAt(0).toUpperCase() + race.slice(1)}</h3>
+                            <div class="${collapsedRaceGroups.includes(race) ? 'hidden' : ''}">
+                                ${groupedByRace[race].sort((a,b) => a.name.localeCompare(b.name)).map(m => renderMonsterCard(m)).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
@@ -291,7 +346,7 @@
     function renderMonsterCard(m) {
         const isOpen = state.openMonsterCards[m.id];
         return `
-            <div class="py-2">
+            <div class="py-2 pl-4 border-l border-slate-800">
                 <div class="flex items-center justify-between">
                     <div data-action="toggle-monster-card" data-monster-id="${m.id}" class="cursor-pointer flex-grow pr-4">
                         <div class="text-sm font-medium">${m.name}</div>
@@ -337,7 +392,7 @@
     }
 
     function renderBuilderPanel() {
-        const { builder } = state;
+        const { builder, savedScenes } = state;
         const totalEV = builder.reduce((acc, p) => {
             const m = getMonsterById(p.monsterId);
             if (!m) return acc;
@@ -347,20 +402,64 @@
         const totalUnits = builder.reduce((acc, p) => acc + (getMonsterById(p.monsterId)?.organization === 'minion' ? 1 : (p.count || 1)), 0);
 
         return `
-            <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="font-medium">Creador de Encuentros</div>
-                    <div class="flex gap-2">
-                        <button data-action="start-encounter" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40" ${builder.length === 0 ? 'disabled' : ''}>Iniciar</button>
-                        <button data-action="reset-builder" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700">Limpiar</button>
+            <div class="space-y-4">
+                <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="font-medium">Creador de Encuentros</div>
+                        <div class="flex gap-2">
+                            <button data-action="start-encounter" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40" ${builder.length === 0 ? 'disabled' : ''}>Iniciar Encuentro</button>
+                            <button data-action="save-scene" class="px-3 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-600 disabled:opacity-40" ${builder.length === 0 ? 'disabled' : ''}>Guardar Escena</button>
+                            <button data-action="reset-builder" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700">Limpiar</button>
+
+                        </div>
+                    </div>
+                    <div>
+                        <input id="scene-name-input" class="w-full bg-slate-800 rounded-lg px-2 py-1 text-sm" placeholder="Nombre de la Escena..." />
+                    </div>
+                    <div class="text-sm">
+                        <label for="lair-select" class="opacity-70">Entorno:</label>
+                        <select id="lair-select" data-action="select-lair" class="w-full bg-slate-800 rounded-lg px-2 py-1 mt-1">
+                            <option value="none">Ninguno</option>
+                            ${SEED_LAIRS.map(l => `<option value="${l.id}" ${state.selectedLairId === l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70">Total EV</div><div class="text-lg font-semibold">${totalEV}</div></div>
+                        <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70"># Unidades</div><div class="text-lg font-semibold">${totalUnits}</div></div>
+                    </div>
+                    <div class="space-y-2">
+                        ${builder.length === 0 ? `<div class="text-sm opacity-70">Añade monstruos desde la biblioteca y pulsa <b>Iniciar Encuentro</b>.</div>` : builder.map(p => renderPlacedMonster(p)).join('')}
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                    <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70">Total EV</div><div class="text-lg font-semibold">${totalEV}</div></div>
-                    <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70"># Unidades</div><div class="text-lg font-semibold">${totalUnits}</div></div>
+
+                <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
+                    <div class="font-medium">Aventura - Escenas Guardadas</div>
+                    <div class="space-y-2">
+                        ${savedScenes.length === 0 ? `<div class="text-sm opacity-70">No hay escenas guardadas.</div>` : savedScenes.map(s => renderSavedScene(s)).join('')}
+                    </div>
                 </div>
-                <div class="space-y-2">
-                    ${builder.length === 0 ? `<div class="text-sm opacity-70">Añade monstruos desde la biblioteca.</div>` : builder.map(p => renderPlacedMonster(p)).join('')}
+            </div>
+        `;
+    }
+
+    function renderSavedScene(scene) {
+        const totalEV = scene.monsters.reduce((acc, p) => {
+            const m = getMonsterById(p.monsterId);
+            if (!m) return acc;
+            if (m.organization === 'minion') return acc + m.ev;
+            return acc + m.ev * (p.count || 1);
+        }, 0);
+        const totalUnits = scene.monsters.reduce((acc, p) => acc + (getMonsterById(p.monsterId)?.organization === 'minion' ? 1 : (p.count || 1)), 0);
+
+        return `
+            <div class="p-3 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center justify-between">
+                <div>
+                    <div class="font-medium">${scene.name}</div>
+                    <div class="text-xs opacity-70">EV: ${totalEV} · Unidades: ${totalUnits} · Entorno: ${scene.lairId ? getLairById(scene.lairId).name : 'Ninguno'}</div>
+                </div>
+                <div class="flex gap-2">
+                    <button data-action="activate-scene" data-scene-id="${scene.id}" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-xs">Activar</button>
+                    <button data-action="delete-scene" data-scene-id="${scene.id}" class="px-3 py-1.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-xs">Borrar</button>
                 </div>
             </div>
         `;
@@ -392,6 +491,13 @@
     function renderTrackerPanel() {
         const { tracker } = state;
         if (!tracker) return '';
+        
+        const activeUnitIds = tracker.order.slice(tracker.turnIndex);
+        const inactiveUnitIds = tracker.order.slice(0, tracker.turnIndex);
+
+        const activeUnits = activeUnitIds.map(id => tracker.units.find(u => u.unitId === id));
+        const inactiveUnits = inactiveUnitIds.map(id => tracker.units.find(u => u.unitId === id));
+
         return `
             <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3 h-full flex flex-col">
                 <div class="flex items-center justify-between flex-shrink-0">
@@ -401,10 +507,17 @@
                          <button data-action="end-encounter" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700">Terminar</button>
                     </div>
                 </div>
-                <div id="tracker-list" class="space-y-2 flex-grow overflow-auto custom-scrollbar pr-1">
-                    ${tracker.order.map((id, idx) => renderUnitRow(tracker.units.find(u => u.unitId === id), idx === tracker.turnIndex)).join('')}
+                <div id="tracker-list" class="flex-grow overflow-auto custom-scrollbar pr-1">
+                    <div class="text-lg font-bold text-emerald-400">Activos</div>
+                    <div class="space-y-2">
+                        ${activeUnits.map((u, idx) => renderUnitRow(u, idx === 0)).join('')}
+                    </div>
+                    
+                    ${inactiveUnits.length > 0 ? `<div class="text-lg font-bold text-slate-500 pt-4">Inactivos</div>` : ''}
+                    <div class="space-y-2">
+                        ${inactiveUnits.map(u => renderUnitRow(u, false)).join('')}
+                    </div>
                 </div>
-                <textarea id="notes-textarea" class="w-full bg-slate-800 rounded-lg p-2 text-sm mt-4 flex-shrink-0" placeholder="Notas rápidas del encuentro...">${tracker.notes || ''}</textarea>
             </div>
         `;
     }
@@ -412,6 +525,17 @@
     function renderInitiativePanel() {
         const { tracker, isInitiativeOpen } = state;
         if (!tracker) return '';
+        
+        const livingUnitIds = tracker.order.filter(id => {
+            const unit = tracker.units.find(u => u.unitId === id);
+            return !unit || unit.role === 'hero' || unit.role === 'lair' || unit.hp > 0;
+        });
+        const deadUnitIds = tracker.order.filter(id => {
+            const unit = tracker.units.find(u => u.unitId === id);
+            return unit && unit.role !== 'hero' && unit.role !== 'lair' && unit.hp <= 0;
+        });
+        const displayOrder = [...livingUnitIds, ...deadUnitIds];
+
         return `
             <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-2 h-full flex flex-col">
                 <div class="flex justify-between items-center">
@@ -421,24 +545,54 @@
                     </button>
                 </div>
                 <div id="initiative-list" class="flex-grow overflow-auto custom-scrollbar pr-2 ${!isInitiativeOpen ? 'hidden' : ''}">
-                    ${tracker.order.map((id, idx) => {
+                    ${displayOrder.map((id) => {
                         const unit = tracker.units.find(u => u.unitId === id);
+                        const originalIdx = tracker.order.indexOf(id);
                         const isHero = unit.role === 'hero';
-                        const isActive = idx === tracker.turnIndex;
-                        const monster = isHero ? null : getMonsterById(unit.monsterId);
-                        const hasManeuver = !isHero && monster?.abilities?.some(a => a.action === 'maneuver');
+                        const isLair = unit.role === 'lair';
+                        const isActive = originalIdx === tracker.turnIndex;
+                        const isDead = !isHero && !isLair && unit.hp <= 0;
+                        const monster = isHero || isLair ? null : getMonsterById(unit.monsterId);
+                        const hasManeuver = !isHero && !isLair && monster?.abilities?.some(a => a.action === 'maneuver');
                         let allActionsUsed = false;
                         if (isHero) {
-                            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack && unit.actionsUsed.bonusAction;
-                        } else {
-                            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack && (!hasManeuver || unit.actionsUsed.maneuver);
+                            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack1 && unit.actionsUsed.bonusAction;
+                        } else if (!isLair) {
+                            const attacksDone = unit.maxAttacks > 1 ? (unit.actionsUsed.attack1 && unit.actionsUsed.attack2) : unit.actionsUsed.attack1;
+                            allActionsUsed = unit.actionsUsed.move && attacksDone && (!hasManeuver || unit.actionsUsed.maneuver);
                         }
+                        
+                        let itemStyle = '';
+                        let itemClass = 'p-2 my-1 rounded-lg text-xs flex items-center justify-between gap-1 cursor-grab';
+
+                        if (isHero) {
+                            itemClass += ' bg-blue-900/50';
+                        } else if (isLair) {
+                            itemClass += ' bg-violet-900/50';
+                        } else if (isDead) {
+                            itemClass += ' bg-black/50 filter grayscale';
+                            itemStyle = `border: 2px solid #404040;`;
+                        } else {
+                            const pct = Math.max(0, Math.min(100, Math.round((unit.hp / unit.hpMax) * 100)));
+                            const healthColor = getHealthColor(pct);
+                            itemClass += ' bg-slate-800';
+                            itemStyle = `border: 2px solid ${healthColor};`;
+                        }
+
+                        if (isActive) {
+                            itemClass += ' ring-2 ring-emerald-500';
+                        }
+                        if (allActionsUsed && !isDead) {
+                            itemClass += ' filter grayscale';
+                        }
+
                         return `
-                        <div draggable="true" data-action="select-unit-from-initiative" data-unit-id="${id}" class="p-2 my-1 rounded-lg ${isHero ? 'bg-blue-900/50' : 'bg-slate-800'} ${isActive ? 'ring-2 ring-emerald-500' : ''} ${allActionsUsed ? 'filter grayscale' : ''} text-xs flex items-center justify-between gap-1 cursor-grab">
-                            <span class="truncate"><b>${idx + 1}.</b> ${unit?.name || id}</span>
+                        <div draggable="true" data-action="select-unit-from-initiative" data-unit-id="${id}" style="${itemStyle}" class="${itemClass}">
+                            <span class="truncate"><b>${originalIdx + 1}.</b> ${unit?.name || id}</span>
                         </div>
                     `}).join('')}
                 </div>
+                 <textarea id="notes-textarea" class="w-full bg-slate-800 rounded-lg p-2 text-sm mt-4 flex-shrink-0 ${!isInitiativeOpen ? 'hidden' : ''}" placeholder="Notas rápidas del encuentro...">${tracker.notes || ''}</textarea>
             </div>
         `;
     }
@@ -446,38 +600,65 @@
     function renderUnitRow(u, isActive) {
         if (!u) return '';
         const isHero = u.role === 'hero';
-        const monster = isHero ? null : getMonsterById(u.monsterId);
-        const hasManeuver = !isHero && monster?.abilities?.some(a => a.action === 'maneuver');
-        const isDead = !isHero && u.hp <= 0;
-        const isBlooded = !isHero && !isDead && u.hp <= u.hpMax * 0.25;
+        const isLair = u.role === 'lair';
+        const monster = isHero || isLair ? null : getMonsterById(u.monsterId);
+        const hasManeuver = !isHero && !isLair && monster?.abilities?.some(a => a.action === 'maneuver');
+        const isDead = !isHero && !isLair && u.hp <= 0;
+        const isBlooded = !isHero && !isLair && !isDead && u.hp <= u.hpMax * 0.25;
         const isSelected = state.selectedUnitId === u.unitId;
-        const pct = isHero ? 100 : Math.max(0, Math.min(100, Math.round((u.hp / u.hpMax) * 100)));
+        const pct = isHero || isLair ? 100 : Math.max(0, Math.min(100, Math.round((u.hp / u.hpMax) * 100)));
         const healthColor = getHealthColor(pct);
         const isOpen = state.openUnitCards[u.unitId];
         const activeTab = state.activeUnitTabs[u.unitId] || 'acciones';
         
         let allActionsUsed = false;
         if (isHero) {
-            allActionsUsed = u.actionsUsed.move && u.actionsUsed.attack && u.actionsUsed.bonusAction;
+            allActionsUsed = u.actionsUsed.move && u.actionsUsed.attack1 && u.actionsUsed.bonusAction;
+        } else if (isLair) {
+            allActionsUsed = Object.values(u.actionsUsed).some(used => used);
         } else {
-            allActionsUsed = u.actionsUsed.move && u.actionsUsed.attack && (!hasManeuver || u.actionsUsed.maneuver);
+            const attacksDone = u.maxAttacks > 1 ? (u.actionsUsed.attack1 && u.actionsUsed.attack2) : u.actionsUsed.attack1;
+            allActionsUsed = u.actionsUsed.move && attacksDone && (!hasManeuver || u.actionsUsed.maneuver);
         }
 
         let borderColor = "border-slate-800";
         if (isActive && !isDead) borderColor = "border-emerald-500 shadow-lg shadow-emerald-500/20";
         else if (isSelected && !isDead) borderColor = "border-blue-500 shadow-lg shadow-blue-500/20";
+        if (isLair) borderColor = "border-violet-500";
 
         const tabButton = (tabName, label) => `<button data-action="set-unit-tab" data-unit-id="${u.unitId}" data-tab-name="${tabName}" class="px-3 py-1 text-xs rounded-t-lg ${activeTab === tabName ? 'bg-slate-800' : 'bg-slate-900'}">${label}</button>`;
         
         const conditionIcons = u.conditions.map(c => `<span class="text-xs bg-red-800 px-1.5 py-0.5 rounded-md" title="${CONDITIONS_MAP[c] || c}">${c.substring(0,3)}</span>`).join('');
 
+        if (isLair) {
+            const lair = getLairById(u.lairId);
+            return `
+                <div id="unit-${u.unitId}" class="unit-card p-3 rounded-xl border ${borderColor} ${allActionsUsed ? 'filter grayscale opacity-60' : 'bg-slate-900/60'}">
+                    <div class="font-medium text-sm flex items-center gap-2">
+                        <span>${u.name}</span>
+                        <span class="opacity-60 text-xs">${u.label}</span>
+                    </div>
+                    <div class="mt-2 text-xs space-y-2">
+                        ${lair.lairActions.map(action => `
+                            <div data-action="use-lair-action" data-unit-id="${u.unitId}" data-lair-action-id="${action.id}" class="p-2 rounded border border-slate-800 hover:border-slate-600 cursor-pointer ${u.actionsUsed[action.id] ? 'filter grayscale opacity-50' : ''}">
+                                <b>${action.name}:</b> ${action.desc}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
         return `
             <div id="unit-${u.unitId}" class="unit-card p-3 rounded-xl border ${borderColor} ${isDead || allActionsUsed ? 'filter grayscale opacity-60' : 'bg-slate-900/60'}">
                 <div class="flex items-start justify-between">
                     <div class="flex-grow pr-4">
-                        <div data-action="select-unit" data-unit-id="${u.unitId}" class="font-medium text-sm cursor-pointer flex items-center gap-2 ${isDead ? 'line-through' : ''}">
-                            <span>${isHero ? `★ ${u.name}` : u.name}</span>
-                            <span class="opacity-60 text-xs flex items-center gap-1.5">${isHero ? u.label : `L${u.level} · ${u.org} · ${ROLE_ICONS[monster.role] || monster.role}`}</span>
+                        <div class="flex items-center gap-2">
+                            ${!isHero ? `<div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold" title="Armor Class">${monster.ac}</div>` : ''}
+                            <div data-action="select-unit" data-unit-id="${u.unitId}" class="font-medium text-sm cursor-pointer ${isDead ? 'line-through' : ''}">
+                                <span>${isHero ? `★ ${u.name}` : u.name}</span>
+                                <span class="opacity-60 text-xs flex items-center gap-1.5">${isHero ? u.label : `L${u.level} · ${u.org} · ${ROLE_ICONS[monster.role] || monster.role}`}</span>
+                            </div>
                             <div class="flex gap-1">${conditionIcons}</div>
                         </div>
                         ${!isHero ? `<div class="h-2 rounded bg-slate-800 mt-1 mb-1 overflow-hidden"><div class="health-bar-inner h-2" style="width: ${pct}%; background-color: ${healthColor};"></div></div>` : '<div class="h-2"></div>'}
@@ -501,7 +682,8 @@
                 </div>
                 <div class="mt-3 flex items-center gap-4 text-xs">
                     <label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="move" ${u.actionsUsed.move ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Movimiento</label>
-                    <label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="attack" ${u.actionsUsed.attack ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Ataque</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="attack1" ${u.actionsUsed.attack1 ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Ataque</label>
+                    ${!isHero && u.maxAttacks > 1 ? `<label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="attack2" ${u.actionsUsed.attack2 ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Ataque 2</label>`: ''}
                     ${hasManeuver ? `<label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="maneuver" ${u.actionsUsed.maneuver ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Maniobra</label>` : ''}
                     ${isHero ? `<label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="bonusAction" ${u.actionsUsed.bonusAction ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Bonus Action</label>` : ''}
                     <div class="relative">
@@ -587,17 +769,18 @@
             return;
         };
 
-        const nonClickActions = ['toggle-action', 'set-placed-count'];
+        const nonClickActions = ['set-placed-count'];
         if (nonClickActions.includes(target.dataset.action)) return;
 
-        const { action, monsterId, instanceId, unitId, idx, dir, deltaSign, cond, tabName, abilityId } = target.dataset;
+        const { action, monsterId, instanceId, unitId, idx, dir, deltaSign, cond, tabName, abilityId, lairActionId, race, sceneId } = target.dataset;
         let stateChanged = true;
 
         switch(action) {
             case 'toggle-library': state.isLibraryOpen = !state.isLibraryOpen; break;
             case 'toggle-initiative': state.isInitiativeOpen = !state.isInitiativeOpen; break;
-            case 'reset-filters': state.filters = { keyword: 'all', organization: 'all', level: 'all', q: '' }; break;
+            case 'reset-filters': state.filters = { keywords: [], organizations: [], levels: [], q: '' }; break;
             case 'toggle-monster-card': state.openMonsterCards[monsterId] = !state.openMonsterCards[monsterId]; break;
+            case 'toggle-race-group': state.collapsedRaceGroups = toggleInArray(state.collapsedRaceGroups, race); break;
             case 'add-monster':
                 if (state.tracker) {
                     handleAddReinforcement(monsterId);
@@ -608,7 +791,7 @@
                 break;
             case 'remove-placed': state.builder = state.builder.filter(p => p.instanceId !== instanceId); break;
             case 'start-encounter': handleStartEncounter(); break;
-            case 'reset-builder': state.builder = []; break;
+            case 'reset-builder': state.builder = []; document.getElementById('scene-name-input').value = ''; break;
             case 'end-encounter': state.tracker = null; state.selectedUnitId = null; break;
             case 'advance-turn': handleAdvanceTurn(); break;
             case 'move-initiative': handleMoveInitiative(parseInt(idx, 10), parseInt(dir, 10)); break;
@@ -630,6 +813,22 @@
             case 'toggle-condition': 
                 handleToggleCondition(unitId, cond);
                 break;
+            case 'use-lair-action':
+                const lairUnit = state.tracker.units.find(u => u.unitId === unitId);
+                if (lairUnit) {
+                    lairUnit.actionsUsed[lairActionId] = true;
+                    handleAdvanceTurn();
+                }
+                break;
+            case 'toggle-action':
+                handleToggleAction(unitId, target.dataset.actionName, target.checked);
+                break;
+            case 'toggle-filters':
+                state.isFiltersOpen = !state.isFiltersOpen;
+                break;
+            case 'save-scene': handleSaveScene(); break;
+            case 'activate-scene': handleActivateScene(sceneId); break;
+            case 'delete-scene': state.savedScenes = state.savedScenes.filter(s => s.id !== sceneId); break;
             default: stateChanged = false; break;
         }
         
@@ -662,7 +861,13 @@
     function handleAppChange(e) {
         const target = e.target;
         if (target.dataset.filter) {
-            state.filters[target.dataset.filter] = target.value;
+            const filterType = target.dataset.filter;
+            const value = target.value;
+            if (target.checked) {
+                state.filters[filterType].push(value);
+            } else {
+                state.filters[filterType] = state.filters[filterType].filter(v => v !== value);
+            }
             render();
         } else if (target.dataset.action === 'toggle-action') {
             handleToggleAction(target.dataset.unitId, target.dataset.actionName, target.checked);
@@ -671,16 +876,23 @@
             handleToggleCondition(target.dataset.unitId, target.dataset.cond);
             saveState();
             render();
+        } else if (target.dataset.action === 'select-lair') {
+            state.selectedLairId = target.value === 'none' ? null : target.value;
+            saveState();
         }
     }
     
     // --- LOGIC FUNCTIONS ---
-    function handleStartEncounter() {
+    function handleStartEncounter(scene = null) {
+        const monsterList = scene ? scene.monsters : state.builder;
+        const lairId = scene ? scene.lairId : state.selectedLairId;
         const units = [];
-        state.builder.forEach(p => {
+        
+        monsterList.forEach(p => {
             const m = getMonsterById(p.monsterId);
             if (!m) return;
-            const baseUnit = { level: m.level, role: m.role, org: m.organization, freeStrike: m.freeStrike, monsterId: m.id, conditions: [], actionsUsed: { move: false, attack: false, maneuver: false, bonusAction: false } };
+            const maxAttacks = m.level >= 2 ? 2 : 1;
+            const baseUnit = { level: m.level, role: m.role, org: m.organization, freeStrike: m.freeStrike, monsterId: m.id, conditions: [], actionsUsed: { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false }, maxAttacks };
             if (m.organization === "minion") {
                 units.push({ ...baseUnit, unitId: `${p.instanceId}-squad`, name: `${m.name}`, label: "Squad", hp: m.stamina * p.count, hpMax: m.stamina * p.count });
             } else {
@@ -689,20 +901,72 @@
                 }
             }
         });
+        
+        const order = units.map(u => u.unitId);
+
+        if (lairId) {
+            const lair = getLairById(lairId);
+            const lairUnit = {
+                unitId: `lair-${cryptoRandom()}`,
+                name: lair.name,
+                label: "Acción de Guarida",
+                role: 'lair',
+                lairId: lair.id,
+                actionsUsed: {},
+                conditions: []
+            };
+            units.push(lairUnit);
+            const randomIndex = Math.floor(Math.random() * (order.length));
+            order.splice(randomIndex, 0, lairUnit.unitId);
+        }
+
         state.tracker = {
-            started: true, round: 1, order: units.map(u => u.unitId), turnIndex: 0, units,
-            malice: units.length, log: [{ t: Date.now(), msg: `Encounter started.` }], notes: ""
+            started: true, round: 1, order, turnIndex: 0, units,
+            malice: units.filter(u => u.role !== 'hero' && u.role !== 'lair').length, 
+            log: [{ t: Date.now(), msg: `Encounter started.` }], notes: ""
         };
+    }
+
+    function handleActivateScene(sceneId) {
+        const scene = state.savedScenes.find(s => s.id === sceneId);
+        if (scene) {
+            handleStartEncounter(scene);
+        }
+    }
+
+    function handleSaveScene() {
+        const nameInput = document.getElementById('scene-name-input');
+        const name = nameInput.value.trim();
+        if (!name || state.builder.length === 0) return;
+
+        const newScene = {
+            id: cryptoRandom(),
+            name,
+            monsters: JSON.parse(JSON.stringify(state.builder)),
+            lairId: state.selectedLairId
+        };
+
+        state.savedScenes.push(newScene);
+        state.builder = [];
+        nameInput.value = '';
     }
 
     function handleAdvanceTurn() {
         if (!state.tracker) return;
         const t = state.tracker;
         t.turnIndex = (t.turnIndex + 1) % t.order.length;
-        if (t.turnIndex === 0) t.round++;
+        if (t.turnIndex === 0) {
+            t.round++;
+            t.units.forEach(u => {
+                u.actionsUsed = { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false };
+                if (u.role === 'lair') u.actionsUsed = {};
+            });
+        }
         const nextUnitId = t.order[t.turnIndex];
         const nextUnit = t.units.find(u => u.unitId === nextUnitId);
-        if (nextUnit) nextUnit.actionsUsed = { move: false, attack: false, maneuver: false, bonusAction: false };
+        if (nextUnit && nextUnit.role !== 'lair') {
+            nextUnit.actionsUsed = { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false };
+        }
     }
 
     function handleMoveInitiative(idx, dir) {
@@ -748,9 +1012,10 @@
         
         let allActionsUsed = false;
         if (isHero) {
-            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack && unit.actionsUsed.bonusAction;
+            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack1 && unit.actionsUsed.bonusAction;
         } else {
-            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack && (!hasManeuver || unit.actionsUsed.maneuver);
+            const attacksDone = unit.maxAttacks === 1 ? unit.actionsUsed.attack1 : (unit.actionsUsed.attack1 && unit.actionsUsed.attack2);
+            allActionsUsed = unit.actionsUsed.move && attacksDone && (!hasManeuver || unit.actionsUsed.maneuver);
         }
 
         if (allActionsUsed) {
@@ -777,11 +1042,16 @@
         if (!ability || (ability.malice && state.tracker.malice < ability.malice)) return;
 
         if (ability.malice) state.tracker.malice -= ability.malice;
-        if (ability.action === 'main') unit.actionsUsed.attack = true;
+        
+        if (ability.action === 'main') {
+            if (!unit.actionsUsed.attack1) unit.actionsUsed.attack1 = true;
+            else if (unit.maxAttacks > 1 && !unit.actionsUsed.attack2) unit.actionsUsed.attack2 = true;
+        }
         if (ability.action === 'maneuver') unit.actionsUsed.maneuver = true;
 
         const hasManeuver = monster?.abilities?.some(a => a.action === 'maneuver');
-        const allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack && (!hasManeuver || unit.actionsUsed.maneuver);
+        const attacksDone = unit.maxAttacks === 1 ? unit.actionsUsed.attack1 : (unit.actionsUsed.attack1 && unit.actionsUsed.attack2);
+        const allActionsUsed = unit.actionsUsed.move && attacksDone && (!hasManeuver || unit.actionsUsed.maneuver);
 
         if (allActionsUsed) {
              setTimeout(() => {
@@ -808,7 +1078,8 @@
             const hero = {
                 unitId, name, label: "Héroe", level: "—", role: "hero", org: "hero",
                 monsterId: null, freeStrike: "—", hp: 0, hpMax: 0,
-                actionsUsed: { move: false, attack: false, maneuver: false, bonusAction: false },
+                actionsUsed: { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false },
+                maxAttacks: 1,
                 conditions: []
             };
             t.units.push(hero);
@@ -821,8 +1092,8 @@
     function handleAddReinforcement(monsterId) {
         const m = getMonsterById(monsterId);
         if (!m || !state.tracker) return;
-
-        const baseUnit = { level: m.level, role: m.role, org: m.organization, freeStrike: m.freeStrike, monsterId: m.id, conditions: [], actionsUsed: { move: false, attack: false, maneuver: false, bonusAction: false } };
+        const maxAttacks = m.level >= 2 ? 2 : 1;
+        const baseUnit = { level: m.level, role: m.role, org: m.organization, freeStrike: m.freeStrike, monsterId: m.id, conditions: [], actionsUsed: { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false }, maxAttacks };
         
         if (m.organization === "minion") {
             const unitId = `${m.id}:${cryptoRandom()}-squad`;
@@ -883,37 +1154,71 @@
         document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
     }
 
-    // --- RESIZER LOGIC ---
+    // --- RESIZER LOGIC (completo) ---
     let currentResizer = null;
+    let startX = 0;
+    let startWidth = 0;
+    let containerWidth = 0;
 
     function initResize(e) {
-        currentResizer = e.target;
-        window.addEventListener('mousemove', resize);
-        window.addEventListener('mouseup', stopResize);
+      currentResizer = e.target;
+      const panelId = currentResizer.dataset.panel; // "library" | "initiative"
+      const panelEl = document.getElementById(`${panelId}-container`);
+      const root = document.getElementById('app-container');
+
+      startX = e.clientX;
+      startWidth = panelEl.getBoundingClientRect().width;
+      containerWidth = root.getBoundingClientRect().width;
+
+      window.addEventListener('mousemove', resize);
+      window.addEventListener('mouseup', stopResize);
     }
 
     function resize(e) {
-        if (!currentResizer) return;
-        const panelId = currentResizer.dataset.panel;
-        const panel = document.getElementById(`${panelId}-container`);
-        if (panel) {
-            const newWidth = (e.clientX - panel.getBoundingClientRect().left);
-            state.panelWidths[panelId] = `${newWidth}px`;
-            panel.style.width = `${newWidth}px`;
-        }
+      if (!currentResizer) return;
+      const panelId = currentResizer.dataset.panel;
+      const delta = e.clientX - startX;
+
+      // Si arrastras el separador de iniciativa, la lógica se invierte respecto al borde derecho
+      let newPx;
+      if (panelId === 'library') {
+        newPx = Math.max(160, startWidth + delta);
+      } else {
+        newPx = Math.max(160, startWidth - delta);
+      }
+
+      // Limita a 15%–60% del ancho total para no colapsar el layout
+      let newPct = Math.round((newPx / containerWidth) * 100);
+      newPct = Math.max(15, Math.min(60, newPct));
+
+      state.panelWidths[panelId] = `${newPct}%`;
+      // Pintado inmediato sin esperar a mouseup
+      const target = document.getElementById(`${panelId}-container`);
+      if (target) target.style.width = state.panelWidths[panelId];
     }
 
     function stopResize() {
-        window.removeEventListener('mousemove', resize);
-        window.removeEventListener('mouseup', stopResize);
-        saveState();
-        currentResizer = null;
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResize);
+      currentResizer = null;
+      saveState();
     }
 
-    // --- INITIALIZATION ---
-    document.addEventListener('DOMContentLoaded', () => {
+    // --- BOOTSTRAP ---
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
         initState();
         render();
+      } catch (err) {
+        console.error('[Encounter Toolkit] fallo en bootstrap:', err);
+        const root = document.getElementById('app-container');
+        if (root) {
+          root.innerHTML = `<div style="padding:16px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:12px;">
+            <div style="font-weight:600;margin-bottom:8px;">Error inicializando la app</div>
+            <pre style="white-space:pre-wrap;font-size:12px;opacity:.8;">${String(err)}</pre>
+          </div>`;
+        }
+      }
     });
     </script>
 </body>
