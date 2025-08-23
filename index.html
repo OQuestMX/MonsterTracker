@@ -134,7 +134,7 @@
     const LS_KEY = "ds_encounter_html_v5";
     let state = {};
 
-    function initState() {
+   function initState() {
         const defaultState = {
             isLibraryOpen: true,
             isInitiativeOpen: true,
@@ -160,9 +160,12 @@
         try {
             const loadedState = JSON.parse(localStorage.getItem(LS_KEY));
             state = { ...defaultState, ...(loadedState || {}) };
-            if (!state.savedScenes) { // Ensure savedScenes is an array
+            
+            // Verificación mejorada: Si 'savedScenes' no es un arreglo, lo resetea.
+            if (!Array.isArray(state.savedScenes)) { 
                 state.savedScenes = [];
             }
+
         } catch (e) {
             console.error("Failed to load state, using defaults:", e);
             state = defaultState;
