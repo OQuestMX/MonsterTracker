@@ -71,8 +71,7 @@
 <body class="bg-slate-950 text-slate-100 p-4">
 
     <div id="app-container" class="flex flex-col h-screen max-h-screen">
-        <!-- App content will be rendered here by JavaScript -->
-    </div>
+        </div>
     <div id="modal-container"></div>
 
     <script>
@@ -161,10 +160,19 @@
             const loadedState = JSON.parse(localStorage.getItem(LS_KEY));
             state = { ...defaultState, ...(loadedState || {}) };
             
-            // Verificación mejorada: Si 'savedScenes' no es un arreglo, lo resetea.
+            // --- INICIO DE LA SOLUCIÓN DEFINITIVA ---
+
+            // 1. Asegura que savedScenes siempre sea un arreglo válido.
             if (!Array.isArray(state.savedScenes)) { 
                 state.savedScenes = [];
             }
+
+            // 2. Asegura que 'filters' y sus propiedades internas siempre tengan la estructura correcta.
+            // Esto fusiona los filtros por defecto con cualquier filtro que se haya cargado,
+            // garantizando que 'keywords', 'organizations', etc., siempre existan como arreglos.
+            state.filters = { ...defaultState.filters, ...(state.filters || {}) };
+
+            // --- FIN DE LA SOLUCIÓN DEFINITIVA ---
 
         } catch (e) {
             console.error("Failed to load state, using defaults:", e);
