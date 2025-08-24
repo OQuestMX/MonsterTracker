@@ -587,7 +587,7 @@
         if (!u) return '';
         const isHero = u.role === 'hero';
         const isLair = u.role === 'lair';
-        const monster = isHero || isLair ? null : getMonsterById(unit.monsterId);
+        const monster = isHero || isLair ? null : getMonsterById(u.monsterId);
         const hasManeuver = !isHero && !isLair && monster?.abilities?.some(a => a.action === 'maneuver');
         const isDead = !isHero && !isLair && u.hp <= 0;
         const isBlooded = !isHero && !isLair && !isDead && u.hp <= u.hpMax * 0.25;
