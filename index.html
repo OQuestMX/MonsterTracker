@@ -1,1211 +1,1185 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Encounter Toolkit</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1e293b; /* slate-800 */
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #475569; /* slate-600 */
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #64748b; /* slate-500 */
-        }
-        .unit-card {
-            transition: all 0.3s ease-in-out;
-            position: relative;
-        }
-        .dragging {
-            opacity: 0.5;
-        }
-        .drag-over {
-            border-top: 2px solid #10b981; /* emerald-500 */
-        }
-        @keyframes fadeUpAndOut {
-            0% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-        }
-        .damage-float {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 1.5rem;
-            font-weight: bold;
-            pointer-events: none;
-            animation: fadeUpAndOut 1s forwards;
-        }
-        .health-bar-inner {
-            transition: background-color 0.5s ease, width 0.3s ease;
-        }
-        .resizer {
-            background: #334155; /* slate-700 */
-            cursor: col-resize;
-            width: 6px;
-            flex-shrink: 0;
-            z-index: 10;
-        }
-        .resizer:hover {
-            background: #475569; /* slate-600 */
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Story Master Hub — Epic Quest</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<style>
+/* ══════════════════════════════════════════════
+   RESET & TOKENS — iPad-first, legibility-first
+   ══════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f3f2ee;--surface:#fff;--surface2:#f9f8f5;
+  --ink:#1a1a1a;--ink2:#444;--ink3:#666;--ink4:#999;
+  --border:#ddd9d0;--border2:#ccc8be;
+  --gold:#8a6f0a;--gold-light:#f0ead0;--gold-pale:#f8f5e8;
+  --red:#b02828;--red-light:#fae8e8;
+  --blue:#2858a0;--blue-light:#e6eefc;
+  --green:#247038;--green-light:#e4f2ea;
+  --purple:#6030a0;--purple-light:#ede6fa;
+  --orange:#a06010;--orange-light:#faf0e2;
+  --sidebar:#1c1d2e;--sidebar2:#282940;--sidebar3:#333455;
+  --sidebar-text:#b0b1c8;--sidebar-dim:#7a7b9a;
+  --r:8px;--r-lg:12px;
+  --font:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --serif:Georgia,serif;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);font-size:15px;color:var(--ink);background:var(--bg);display:flex}
+
+/* ══════════════════════════════════════════════
+   SIDEBAR — touch-friendly, no clutter
+   ══════════════════════════════════════════════ */
+.sidebar{
+  width:180px;min-width:180px;background:var(--sidebar);
+  display:flex;flex-direction:column;padding:16px 8px;
+  overflow-y:auto;user-select:none;-webkit-overflow-scrolling:touch;
+}
+.sidebar::-webkit-scrollbar{display:none}
+.sb-brand{text-align:center;margin-bottom:4px}
+.sb-brand-name{color:#c9a84c;font-size:14px;font-weight:800;letter-spacing:2px}
+.sb-brand-sub{color:var(--sidebar-dim);font-size:10px;letter-spacing:.5px}
+.sb-campaign{
+  background:var(--sidebar2);border:1px solid var(--sidebar3);
+  border-radius:var(--r);padding:10px;margin:10px 0 16px;
+}
+.sb-campaign-label{color:var(--sidebar-dim);font-size:9px;letter-spacing:.8px;font-weight:700}
+.sb-campaign-name{color:#e8e8f0;font-size:13px;font-weight:700;margin-top:3px}
+.sb-campaign-session{color:var(--sidebar-text);font-size:11px;margin-top:2px}
+.sb-nav{display:flex;flex-direction:column;gap:2px}
+.sb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 10px;border-radius:var(--r);min-height:44px;
+  cursor:pointer;border:1px solid transparent;
+}
+.sb-item:active{background:var(--sidebar2)}
+.sb-item.active{background:rgba(201,168,76,.1);border-color:rgba(201,168,76,.3)}
+.sb-item-icon{font-size:18px;width:22px;text-align:center;flex-shrink:0}
+.sb-item-name{font-size:13px;font-weight:600;color:var(--sidebar-text)}
+.sb-item.active .sb-item-name{color:#c9a84c}
+.sb-divider{border:none;border-top:1px solid var(--sidebar3);margin:12px 4px}
+.sb-players{margin-top:auto;padding-top:12px}
+.sb-players-label{color:var(--sidebar-dim);font-size:9px;letter-spacing:1px;font-weight:700;text-align:center;margin-bottom:8px}
+.sb-player-list{display:flex;justify-content:center;gap:8px}
+.sb-player{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;
+}
+.sb-settings{
+  margin-top:12px;padding:10px;border-radius:var(--r);min-height:44px;
+  text-align:center;cursor:pointer;border:1px solid var(--sidebar3);
+  color:var(--sidebar-dim);font-size:11px;display:flex;align-items:center;justify-content:center;
+}
+.sb-settings:active{background:var(--sidebar2);color:var(--sidebar-text)}
+
+/* ══════════════════════════════════════════════
+   MAIN AREA
+   ══════════════════════════════════════════════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 20px;background:var(--surface);
+  border-bottom:1px solid var(--border);flex-shrink:0;min-height:50px;
+}
+.breadcrumb{font-size:13px;color:var(--ink3)}
+.breadcrumb span{color:var(--ink);font-weight:600}
+.topbar-spacer{flex:1}
+.btn{
+  padding:10px 16px;border-radius:var(--r);font-size:13px;
+  font-weight:600;font-family:var(--font);cursor:pointer;
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--ink2);display:inline-flex;align-items:center;gap:6px;
+  min-height:44px;
+}
+.btn:active{background:var(--bg);border-color:var(--border2)}
+.btn-gold{background:var(--gold-light);border-color:var(--gold);color:var(--gold)}
+.btn-primary{background:var(--gold);border-color:var(--gold);color:#fff}
+.btn-primary:active{background:#6a5808}
+.content{flex:1;overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch}
+.content::-webkit-scrollbar{display:none}
+
+/* ══════════════════════════════════════════════
+   VIEW SYSTEM
+   ══════════════════════════════════════════════ */
+.view{display:none}
+.view.active{display:block}
+
+/* ══════════════════════════════════════════════
+   SECTION HEADERS
+   ══════════════════════════════════════════════ */
+.section-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--gold);margin-bottom:10px}
+.section-desc{font-size:14px;color:var(--ink3);margin-bottom:16px;line-height:1.5}
+
+/* ══════════════════════════════════════════════
+   CAMPAIGN: BEATS
+   ══════════════════════════════════════════════ */
+.beats-row{display:flex;gap:8px;margin-bottom:24px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.beat-card{
+  flex:0 0 190px;background:var(--surface);border:2px solid var(--border);
+  border-radius:var(--r-lg);padding:14px 16px;cursor:pointer;
+}
+.beat-card:active{border-color:var(--gold)}
+.beat-card.active{border-color:var(--gold);background:var(--gold-pale)}
+.beat-card.dim{opacity:.4}
+.beat-card .beat-num{font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.5px}
+.beat-card .beat-name{font-size:15px;font-weight:700;color:var(--ink);margin-top:4px;font-family:var(--serif)}
+.beat-card .beat-status{font-size:11px;color:var(--ink3);margin-top:6px}
+.beat-card .beat-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.beat-card .beat-fill{height:100%;background:var(--gold);border-radius:2px}
+.beat-connector{flex-shrink:0;display:flex;align-items:center;color:var(--border2);font-size:16px}
+
+/* ══════════════════════════════════════════════
+   CAMPAIGN: SCENE CARDS
+   ══════════════════════════════════════════════ */
+.scenes-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.scenes-header .section-label{margin:0}
+.scene-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px}
+.scene-card{
+  background:var(--surface);border:2px solid var(--border);
+  border-radius:var(--r-lg);padding:16px;cursor:pointer;
+  position:relative;overflow:hidden;
+}
+.scene-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.scene-card.combat::before{background:var(--red)}
+.scene-card.social::before{background:var(--blue)}
+.scene-card.exploration::before{background:var(--green)}
+.scene-card.revelation::before{background:var(--purple)}
+.scene-card.sporadic::before{background:var(--gold)}
+.scene-card.sporadic{border-style:dashed}
+.scene-badge{display:inline-block;padding:3px 10px;border-radius:var(--r);font-size:11px;font-weight:700;margin-bottom:8px}
+.badge-combat{background:var(--red-light);color:var(--red)}
+.badge-social{background:var(--blue-light);color:var(--blue)}
+.badge-exploration{background:var(--green-light);color:var(--green)}
+.badge-revelation{background:var(--purple-light);color:var(--purple)}
+.badge-sporadic{background:var(--gold-pale);color:var(--gold)}
+.scene-status{float:right;font-size:10px;font-weight:600;padding:3px 8px;border-radius:var(--r)}
+.status-debrief{background:var(--green-light);color:var(--green)}
+.status-active{background:var(--gold-pale);color:var(--gold)}
+.status-ready{background:var(--bg);color:var(--ink3)}
+.scene-card .scene-name{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;font-family:var(--serif)}
+.scene-card .scene-detail{font-size:13px;color:var(--ink3);line-height:1.5;margin-bottom:2px}
+.scene-flag{margin-top:10px;padding:8px 10px;border-radius:var(--r);font-size:12px;line-height:1.4;border:1px dashed}
+.flag-consequence{background:rgba(176,40,40,.04);border-color:var(--red);color:var(--red)}
+.flag-personal{background:rgba(96,48,160,.04);border-color:var(--purple);color:var(--purple)}
+
+/* ══════════════════════════════════════════════
+   SCENE BUILDER
+   ══════════════════════════════════════════════ */
+.builder-layout{display:flex;gap:16px}
+.builder-main{flex:1;min-width:0}
+.builder-side{width:280px;min-width:280px}
+@media(max-width:900px){
+  .builder-layout{flex-direction:column}
+  .builder-side{width:100%;min-width:0}
+}
+.builder-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.builder-tab{
+  padding:10px 16px;border-radius:var(--r);font-size:13px;
+  font-weight:600;cursor:pointer;border:2px solid var(--border);
+  background:var(--surface);color:var(--ink3);min-height:44px;
+  display:flex;align-items:center;
+}
+.builder-tab:active{background:var(--bg)}
+.builder-tab.active{background:var(--gold-light);border-color:var(--gold);color:var(--gold)}
+.builder-tab.tab-debrief{color:var(--red)}
+.builder-tab.tab-debrief.active{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.builder-panel{display:none}
+.builder-panel.active{display:block}
+.form-section{margin-bottom:20px}
+.form-label{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--ink3);margin-bottom:8px}
+.form-input{
+  width:100%;padding:12px 14px;border:2px solid var(--border);
+  border-radius:var(--r);font-size:15px;font-family:var(--font);
+  color:var(--ink);background:var(--surface2);resize:vertical;
+}
+.form-input:focus{outline:none;border-color:var(--gold)}
+.form-input::placeholder{color:var(--ink4)}
+textarea.form-input{min-height:70px;line-height:1.5}
+.stakes-row{display:flex;gap:10px}
+@media(max-width:700px){.stakes-row{flex-direction:column}}
+.stake-box{flex:1;padding:14px;border-radius:var(--r-lg);border:2px dashed}
+.stake-fail{background:rgba(176,40,40,.03);border-color:var(--red)}
+.stake-win{background:rgba(36,112,56,.03);border-color:var(--green)}
+.stake-label{font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:8px}
+.stake-fail .stake-label{color:var(--red)}
+.stake-win .stake-label{color:var(--green)}
+.stake-box .form-input{background:transparent;border-color:transparent}
+.stake-box .form-input:focus{border-color:inherit}
+
+/* TYPE SELECTOR — color dots, no emoji */
+.type-selector{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.type-option{
+  padding:10px 18px;border-radius:var(--r);border:2px solid var(--border);
+  cursor:pointer;font-size:14px;font-weight:600;background:var(--surface);
+  min-height:44px;display:flex;align-items:center;gap:8px;color:var(--ink2);
+}
+.type-option .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.type-option.selected{border-width:2px}
+.type-option[data-type="combat"] .dot{background:var(--red)}
+.type-option[data-type="social"] .dot{background:var(--blue)}
+.type-option[data-type="exploration"] .dot{background:var(--green)}
+.type-option[data-type="revelation"] .dot{background:var(--purple)}
+.type-option[data-type="combat"].selected{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.type-option[data-type="social"].selected{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.type-option[data-type="exploration"].selected{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.type-option[data-type="revelation"].selected{border-color:var(--purple);background:var(--purple-light);color:var(--purple)}
+
+/* ══════════════════════════════════════════════
+   LAIR ACTIONS — checkboxes, not chips
+   ══════════════════════════════════════════════ */
+.lair-section{padding:14px;border-radius:var(--r-lg);background:var(--orange-light);border:2px dashed var(--orange)}
+.lair-check{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;color:var(--ink2);cursor:pointer}
+.lair-check input[type="checkbox"]{width:20px;height:20px;accent-color:var(--orange)}
+.combat-only{display:none}
+.combat-only.visible{display:block}
+
+/* ══════════════════════════════════════════════
+   NPC / CREATURE / LOOT CARDS
+   ══════════════════════════════════════════════ */
+.npc-card,.creature-card,.loot-card{
+  background:var(--surface);border:2px solid var(--border);
+  border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px;
+}
+.npc-card .npc-name,.creature-card .creature-name,.loot-card .loot-name{font-size:15px;font-weight:700;font-family:var(--serif)}
+.npc-card .npc-role,.creature-card .creature-type,.loot-card .loot-type{font-size:12px;color:var(--ink3);margin-top:2px}
+.npc-card .npc-detail,.creature-card .creature-abilities,.loot-card .loot-desc{font-size:13px;color:var(--ink2);margin-top:8px;line-height:1.5}
+.npc-card .npc-voice{font-size:14px;color:var(--gold);font-style:italic;margin-top:6px}
+.creature-stats-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.creature-stat{padding:4px 10px;border-radius:var(--r);font-size:12px;font-weight:600;background:var(--bg);color:var(--ink2);border:1px solid var(--border)}
+.creature-stat.hp{background:var(--red-light);color:var(--red);border-color:var(--red)}
+.creature-stat.dmg{background:var(--orange-light);color:var(--orange);border-color:var(--orange)}
+.creature-stat.special{background:var(--purple-light);color:var(--purple);border-color:var(--purple)}
+.difficulty-tag{display:inline-block;padding:3px 10px;border-radius:var(--r);font-size:11px;font-weight:700}
+.diff-easy{background:var(--green-light);color:var(--green)}
+.diff-medium{background:var(--orange-light);color:var(--orange)}
+.diff-hard{background:var(--red-light);color:var(--red)}
+.diff-boss{background:var(--purple-light);color:var(--purple)}
+.loot-card .loot-effect{font-size:13px;color:var(--gold);font-style:italic;margin-top:6px;padding:8px 12px;background:var(--gold-pale);border-radius:var(--r)}
+.loot-rarity{display:inline-block;padding:3px 10px;border-radius:var(--r);font-size:11px;font-weight:700;float:right}
+.rarity-common{background:var(--bg);color:var(--ink3)}
+.rarity-uncommon{background:var(--green-light);color:var(--green)}
+.rarity-rare{background:var(--blue-light);color:var(--blue)}
+.rarity-legendary{background:var(--gold-pale);color:var(--gold)}
+.loot-scene-link{display:inline-flex;align-items:center;gap:4px;font-size:11px;margin-top:8px;padding:4px 8px;background:var(--bg);border-radius:var(--r);color:var(--ink3)}
+
+/* VILLAIN */
+.villain-card-lib{background:var(--surface);border:2px solid var(--red);border-left:5px solid var(--red);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px}
+.villain-label{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--red);margin-bottom:4px}
+.villain-status{display:inline-block;padding:3px 10px;border-radius:var(--r);font-size:11px;font-weight:700}
+.vs-active{background:var(--red-light);color:var(--red)}
+.vs-prepared{background:var(--gold-pale);color:var(--gold)}
+
+/* DIFFICULTY METER */
+.difficulty-meter{padding:12px 14px;border-radius:var(--r-lg);border:2px solid var(--border);background:var(--surface2);margin-top:12px}
+.difficulty-meter .dm-label{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--ink3);margin-bottom:8px}
+.dm-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:6px}
+.dm-fill{height:100%;border-radius:4px}
+.dm-fill.medium{background:var(--orange);width:55%}
+.dm-text{font-size:12px;display:flex;justify-content:space-between}
+
+/* ══════════════════════════════════════════════
+   LIBRARY
+   ══════════════════════════════════════════════ */
+.lib-category-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.lib-cat-tab{
+  padding:10px 18px;border-radius:var(--r);font-size:13px;
+  font-weight:600;cursor:pointer;border:2px solid var(--border);
+  background:var(--surface);color:var(--ink3);min-height:44px;
+  display:flex;align-items:center;gap:6px;
+}
+.lib-cat-tab:active{background:var(--bg)}
+.lib-cat-tab.active{border-color:var(--gold);color:var(--gold);background:var(--gold-pale)}
+.lib-cat-tab .tab-count{font-size:11px;background:var(--bg);padding:2px 8px;border-radius:10px;color:var(--ink4);font-weight:700}
+.lib-cat-tab.active .tab-count{background:rgba(138,111,10,.12);color:var(--gold)}
+.lib-content{display:none}
+.lib-content.active{display:block}
+.library-layout{display:flex;gap:16px;height:calc(100vh - 220px)}
+@media(max-width:900px){
+  .library-layout{flex-direction:column;height:auto}
+  .library-list{width:100% !important;min-width:0 !important;max-height:300px}
+}
+.library-list{
+  width:300px;min-width:300px;background:var(--surface);
+  border:2px solid var(--border);border-radius:var(--r-lg);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.library-list::-webkit-scrollbar{display:none}
+.library-search{padding:10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+.library-search input{
+  width:100%;padding:10px 12px;border:2px solid var(--border);
+  border-radius:var(--r);font-size:14px;font-family:var(--font);
+}
+.library-search input:focus{outline:none;border-color:var(--gold)}
+.library-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;min-height:44px}
+.library-item:active{background:var(--bg)}
+.library-item.active{background:var(--gold-pale);border-left:4px solid var(--gold)}
+.library-item .li-name{font-size:14px;font-weight:600}
+.library-item .li-role{font-size:12px;color:var(--ink3);margin-top:2px}
+.library-item .li-status{float:right}
+.library-detail{
+  flex:1;background:var(--surface);border:2px solid var(--border);
+  border-radius:var(--r-lg);padding:24px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.library-detail::-webkit-scrollbar{display:none}
+.detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink4);font-size:15px}
+.detail-header{margin-bottom:20px}
+.detail-name{font-size:22px;font-weight:700;font-family:var(--serif);color:var(--ink)}
+.detail-role{font-size:14px;color:var(--ink3);margin-top:3px}
+.detail-section{margin-bottom:16px}
+.detail-section-label{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--ink3);margin-bottom:6px}
+.detail-section-value{font-size:14px;color:var(--ink);line-height:1.6}
+.detail-voice{
+  font-size:15px;color:var(--gold);font-style:italic;
+  padding:14px 18px;background:var(--gold-pale);border-radius:var(--r);
+  border-left:4px solid var(--gold);margin-top:10px;font-family:var(--serif);
+}
+.creature-terrain{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--green);margin-right:12px}
+
+/* ══════════════════════════════════════════════
+   PLAYER CARDS
+   ══════════════════════════════════════════════ */
+.player-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.player-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--r-lg);padding:18px 20px}
+.player-card-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.player-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800}
+.player-card-name{font-size:18px;font-weight:700;font-family:var(--serif)}
+.player-card-class{font-size:13px;color:var(--ink3)}
+.player-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.player-tag{padding:4px 10px;border-radius:var(--r);font-size:12px;font-weight:600;background:var(--bg);color:var(--ink2);border:1px solid var(--border)}
+.player-tag.faction{background:var(--gold-pale);color:var(--gold);border-color:var(--gold)}
+.player-objective{padding:10px 12px;border-radius:var(--r);background:var(--purple-light);border:1px dashed var(--purple);font-size:13px;color:var(--purple);line-height:1.5;margin-top:10px}
+.player-objective-label{font-weight:700;font-size:10px;letter-spacing:.5px;margin-bottom:4px}
+.echo-tracker{display:flex;align-items:center;gap:10px;margin-top:12px;padding:8px 12px;background:var(--gold-pale);border-radius:var(--r)}
+.echo-tracker-label{font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.5px}
+.echo-dots{display:flex;gap:6px}
+.echo-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:10px}
+.echo-dot.filled{background:var(--gold);color:#fff}
+
+/* ══════════════════════════════════════════════
+   PLACEHOLDER
+   ══════════════════════════════════════════════ */
+.placeholder-view{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center}
+.placeholder-icon{font-size:48px;margin-bottom:16px;opacity:.3}
+.placeholder-title{font-size:18px;font-weight:700;color:var(--ink3);margin-bottom:8px}
+.placeholder-desc{font-size:14px;color:var(--ink4);max-width:400px;line-height:1.6}
+
+/* ══════════════════════════════════════════════
+   COMBAT TRACKER
+   ══════════════════════════════════════════════ */
+.tracker-bar{display:flex;align-items:center;gap:16px;padding:14px 16px;background:var(--surface);border:2px solid var(--border);border-radius:var(--r-lg);margin-bottom:16px;flex-wrap:wrap}
+.tracker-stat{text-align:center;min-width:60px}
+.tracker-stat-label{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--ink3)}
+.tracker-stat-value{font-size:22px;font-weight:800;color:var(--ink)}
+.tracker-stat-value.gold{color:var(--gold)}
+
+.initiative-bar{display:flex;gap:6px;overflow-x:auto;padding:10px 0;-webkit-overflow-scrolling:touch}
+.initiative-bar::-webkit-scrollbar{display:none}
+.init-chip{
+  flex-shrink:0;padding:8px 14px;border-radius:var(--r);
+  font-size:13px;font-weight:600;border:2px solid var(--border);
+  background:var(--surface);cursor:pointer;min-height:44px;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.init-chip.active{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.init-chip.done{opacity:.4;text-decoration:line-through}
+.init-chip.dead{opacity:.25;text-decoration:line-through}
+.init-chip.player{border-color:var(--blue);color:var(--blue)}
+.init-chip.player.active{border-color:var(--blue);background:var(--blue-light)}
+.init-chip.sinergia-eligible{border-style:dashed;border-color:var(--gold)}
+
+.unit-card-tracker{
+  background:var(--surface);border:2px solid var(--border);
+  border-radius:var(--r-lg);padding:16px;margin-bottom:10px;
+}
+.unit-card-tracker.active-unit{border-color:var(--green);background:#f4faf6}
+.unit-card-tracker.dead-unit{opacity:.35}
+.unit-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.unit-name{font-size:17px;font-weight:700;font-family:var(--serif)}
+.unit-meta{font-size:12px;color:var(--ink3)}
+.hp-section{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.hp-display{font-size:20px;font-weight:800;min-width:80px}
+.hp-bar{flex:1;min-width:120px;height:10px;background:var(--border);border-radius:5px;overflow:hidden}
+.hp-fill{height:100%;border-radius:5px;transition:width .2s}
+.hp-controls{display:flex;gap:6px;align-items:center}
+.hp-controls input{width:70px;padding:8px 10px;border:2px solid var(--border);border-radius:var(--r);font-size:15px;text-align:center;font-family:var(--font)}
+.hp-controls input:focus{outline:none;border-color:var(--gold)}
+.btn-damage{background:var(--red-light);border-color:var(--red);color:var(--red);min-height:44px}
+.btn-heal{background:var(--green-light);border-color:var(--green);color:var(--green);min-height:44px}
+.actions-row{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.action-check{display:flex;align-items:center;gap:8px;font-size:14px;min-height:44px;cursor:pointer}
+.action-check input[type="checkbox"]{width:22px;height:22px}
+.conditions-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.condition-tag{padding:4px 10px;border-radius:var(--r);font-size:11px;font-weight:600;background:var(--red-light);color:var(--red)}
+.abilities-compact{margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r)}
+.ability-line{font-size:13px;color:var(--ink2);padding:4px 0;border-bottom:1px solid var(--border)}
+.ability-line:last-child{border:none}
+.ability-name{font-weight:700;color:var(--ink)}
+
+.lair-panel{background:var(--orange-light);border:2px dashed var(--orange);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px}
+.lair-panel .form-label{color:var(--orange)}
+.lair-action-btn{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--surface);border:2px solid var(--border);border-radius:var(--r);
+  font-size:14px;cursor:pointer;min-height:44px;width:100%;margin-bottom:6px;
+  color:var(--ink2);
+}
+.lair-action-btn:active{background:var(--orange-light);border-color:var(--orange)}
+.lair-action-btn.used{opacity:.35;text-decoration:line-through}
+
+.echo-panel{background:var(--gold-pale);border:2px solid var(--gold);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px}
+.echo-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(138,111,10,.15);min-height:44px}
+.echo-row:last-child{border:none}
+.echo-player-name{font-size:15px;font-weight:600}
+.echo-btn{
+  padding:8px 14px;border-radius:var(--r);font-size:14px;font-weight:700;
+  background:var(--gold);color:#fff;border:none;cursor:pointer;min-height:44px;
+}
+.echo-btn:active{background:#6a5808}
+.echo-count{font-size:18px;font-weight:800;color:var(--gold);min-width:30px;text-align:center}
+
+.no-session{display:flex;flex-direction:column;align-items:center;justify-content:center;height:50vh;text-align:center;gap:16px}
+.no-session-title{font-size:18px;font-weight:700;color:var(--ink3)}
+.no-session-desc{font-size:14px;color:var(--ink4);max-width:400px;line-height:1.6}
+
+/* ══════════════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════════════ */
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.mb-16{margin-bottom:16px}
+
+/* MODAL */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--surface);border:2px solid var(--border);border-radius:var(--r-lg);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px}
+.modal::-webkit-scrollbar{display:none}
+.modal-title{font-size:18px;font-weight:700;font-family:var(--serif);margin-bottom:16px;color:var(--ink)}
+.modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.form-row{display:flex;gap:12px}
+.form-row>*{flex:1}
+.empty-state{text-align:center;padding:40px 20px;color:var(--ink4)}
+.empty-state-title{font-size:16px;font-weight:600;color:var(--ink3);margin-bottom:8px}
+.empty-state-desc{font-size:14px;margin-bottom:16px;line-height:1.5}
+.entity-list-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:space-between}
+.entity-list-item:active{background:var(--bg)}
+.entity-list-item.selected{background:var(--gold-pale);border-left:4px solid var(--gold)}
+.delete-btn{color:var(--red);background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
+.inline-edit{background:var(--surface2);border:2px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:14px;width:100%;font-family:var(--font);color:var(--ink)}
+.inline-edit:focus{outline:none;border-color:var(--gold)}
+.tag-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.move-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px}
+.move-item input[type=checkbox]{width:20px;height:20px}
+.move-done{text-decoration:line-through;color:var(--ink4)}
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100 p-4">
+<body>
 
-    <div id="app-container" class="flex flex-col h-screen max-h-screen">
-        </div>
-    <div id="modal-container"></div>
+<aside class="sidebar">
+  <div class="sb-brand"><div class="sb-brand-name">EPIC</div><div class="sb-brand-sub">STORY MASTER</div></div>
+  <div class="sb-campaign" id="sb-campaign-info"></div>
+  <nav class="sb-nav">
+    <div class="sb-item active" onclick="nav('campaign')"><div class="sb-item-icon">📜</div><div class="sb-item-name">Campaña</div></div>
+    <div class="sb-item" onclick="nav('scenes')"><div class="sb-item-icon">🎬</div><div class="sb-item-name">Escenas</div></div>
+    <div class="sb-item" onclick="nav('library')"><div class="sb-item-icon">📖</div><div class="sb-item-name">Biblioteca</div></div>
+    <div class="sb-item" onclick="nav('players')"><div class="sb-item-icon">👥</div><div class="sb-item-name">Personajes</div></div>
+    <div class="sb-item" onclick="nav('session')"><div class="sb-item-icon">⚡</div><div class="sb-item-name">Sesión en Vivo</div></div>
+  </nav>
+  <hr class="sb-divider">
+  <div class="sb-players" id="sb-players-bar"></div>
+  <div class="sb-settings" onclick="nav('settings')">⚙️ Configuración</div>
+</aside>
+<div class="main">
+  <div class="topbar">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div class="topbar-spacer"></div>
+    <button class="btn btn-gold" onclick="openModal('scene',null)">+ Escena rápida</button>
+  </div>
+  <div class="content">
+    <div class="view active" id="view-campaign"><div id="campaign-content"></div></div>
+    <div class="view" id="view-scenes"><div id="scenes-content"></div></div>
+    <div class="view" id="view-library"><div id="library-content"></div></div>
+    <div class="view" id="view-players"><div id="players-content"></div></div>
+    <div class="view" id="view-session"><div id="session-content"></div></div>
+    <div class="view" id="view-settings"><div id="settings-content"></div></div>
+  </div>
+</div>
+<div id="modal-root"></div>
 
-    <script src="data.js"></script>
-    
-    <script>
-    // --- DATA (CONDITIONS & ICONS) ---
-    // SEED_MONSTERS y SEED_LAIRS han sido movidos a data.js
-    const CONDITIONS_MAP = {
-        blinded: "Una criatura cegada no puede ver y falla automáticamente cualquier prueba de habilidad que requiera vista. Las tiradas de ataque contra la criatura tienen ventaja, y las tiradas de ataque de la criatura tienen desventaja.",
-        dazed: "Una criatura atontada no puede tomar reacciones y solo puede realizar una acción en su turno: moverse o atacar.",
-        grabbed: "Una criatura agarrada tiene su velocidad reducida a 0 y no puede beneficiarse de ningún bonus a su velocidad.",
-        poisoned: "Una criatura envenenada tiene desventaja en las tiradas de ataque y en las pruebas de habilidad.",
-        prone: "Una criatura derribada solo puede moverse arrastrándose, a menos que se levante. La criatura tiene desventaja en las tiradas de ataque. Una tirada de ataque contra la criatura tiene ventaja si el atacante está a 5 pies de ella, de lo contrario, la tirada tiene desventaja.",
-        restrained: "Una criatura inmovilizada tiene su velocidad reducida a 0. Las tiradas de ataque contra ella tienen ventaja, y sus tiradas de ataque y salvación de Destreza tienen desventaja.",
-        slowed: "Una criatura ralentizada tiene su velocidad reducida a la mitad y tiene un -2 a su CA y a las tiradas de salvación de Destreza.",
-        stunned: "Una criatura aturdida está incapacitada, no puede moverse y solo puede hablar de forma vacilante. Falla automáticamente las tiradas de salvación de Fuerza y Destreza. Las tiradas de ataque en su contra tienen ventaja.",
-        weakened: "Una criatura debilitada tiene desventaja en las tiradas de ataque y salvaciones basadas en Fuerza, Destreza o Constitución.",
-        hexed: "Maldito: Elige una habilidad. El objetivo tiene desventaja en las pruebas de esa habilidad.",
-        hunterMarked: "Marca del Cazador: El atacante sabe la ubicación del objetivo y hace daño extra contra él."
-    };
-    
-    const ROLE_ICONS = {
-        ambusher: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-mask" viewBox="0 0 16 16" title="Ambusher"><path d="M6.225 1.227A7.5 7.5 0 0 1 10.5 8a7.5 7.5 0 0 1-4.275 6.773 7.003 7.003 0 0 0 2.758-1.017c.52-.39,1.012-.864,1.46-1.405C10.867 11.875 11 11.342 11 10.5c0-.24-.023-.47-.065-.692.16-.147.33-.31.508-.495.18-.188.353-.39.528-.604.177-.217.343-.45.508-.705.164-.25.32-.52.468-.81.148-.29.288-.602.418-.938.13-.337.25-.698.358-1.08.108-.38.203-.78.286-1.2.083-.42.153-.86.208-1.32.055-.46.095-.94.12-1.44.025-.5.038-1.02.038-1.54a.5.5 0 0 0-1 0c0 .52-.013 1.04-.038 1.54-.025.5-.065.98-.12 1.44a8.45 8.45 0 0 1-.208 1.32c-.083.42-.153.82-.286 1.2-.108.382-.203.782-.358 1.08-.13.336-.27.648-.418.938-.148.29-.304.56-.468.81-.165.255-.33.488-.508.705-.176.214-.348.416-.528.604-.18.185-.348.348-.508.495A6.501 6.501 0 0 0 10.5 9a6.5 6.5 0 0 0-4.058 1.44.5.5 0 0 0 .416.862A6.997 6.997 0 0 0 9.5 8a6.997 6.997 0 0 0-2.71-5.582.5.5 0 0 0-.563-.192zM3.283 3.283A6.997 6.997 0 0 0 2.5 8a6.997 6.997 0 0 0 .783 4.717.5.5 0 0 0 .862-.416A6.501 6.501 0 0 1 3.5 8a6.5 6.5 0 0 1 .58-2.854.5.5 0 0 0-.796-.563z"/></svg>`,
-        artillery: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bullseye" viewBox="0 0 16 16" title="Artillery"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 13A5 5 0 1 1 8 3a5 5 0 0 1 0 10zm0 1A6 6 0 1 0 8 2a6 6 0 0 0 0 12z"/><path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M9.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg>`,
-        brute: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hammer" viewBox="0 0 16 16" title="Brute"><path d="M9.972 2.508a.5.5 0 0 0-.16-.556l-.178-.129a5.009 5.009 0 0 0-2.076-.783C6.215.862 4.504 1.229 2.84 3.133H1.786a.5.5 0 0 0-.354.147L.146 4.567a.5.5 0 0 0 0 .706l2.571 2.579a.5.5 0 0 0 .708 0l1.286-1.29a.5.5 0 0 0 .146-.353V5.57l8.387 8.873A.5.5 0 0 0 14 14.5l1.5-1.5a.5.5 0 0 0 0-.707l-8.387-8.873h.582a.5.5 0 0 0 .353-.147l1.29-1.286a.5.5 0 0 0-.146-.353l-1.765-1.766z"/></svg>`,
-        controller: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tornado" viewBox="0 0 16 16" title="Controller"><path d="M3.734 1.002a.5.5 0 0 1 .491.592l-1.2 4.2a.5.5 0 0 1-.982 0l1.2-4.2a.5.5 0 0 1 .491-.592zM5.396 2.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM7.058 3.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM8.72 4.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM10.382 5.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM12.044 6.002a.5.5 0 0 1 .49.592l-1.2 4.2a.5.5 0 0 1-.98 0l1.2-4.2a.5.5 0 0 1 .49-.592zM2.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM4.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM6.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM8.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM10.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zM12.5 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5z"/></svg>`,
-        defender: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shield-fill" viewBox="0 0 16 16" title="Defender"><path d="M5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887 1.177C14.254 2.18 15 2.934 15 3.72V8.5c0 2.756-3.5 4.5-5 5.5-1.5-1-5-2.744-5-5.5V3.72c0-.786.746-1.54 1.113-1.983C1.843 1.215 2.96 .865 4.072.56z"/></svg>`,
-        harrier: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wind" viewBox="0 0 16 16" title="Harrier"><path d="M12.5 2A2.5 2.5 0 0 0 10 4.5a.5.5 0 0 1-1 0A3.5 3.5 0 1 1 12.5 8H.5a.5.5 0 0 1 0-1h12a2.5 2.5 0 0 0 0-5zm-7 1a1 1 0 0 0-1 1 .5.5 0 0 1-1 0 2 2 0 1 1 2 2h-5a.5.5 0 0 1 0-1h5a1 1 0 0 0 0-2zM0 8a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 0 8zm2.5 4a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5z"/></svg>`,
-        hexer: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-magic" viewBox="0 0 16 16" title="Hexer"><path d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0v1.829Zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707L14 2.707a.5.5 0 0 0 0-.707ZM7.293 4L8 3.293a.5.5 0 0 0-.707-.707L6.586 3.293a.5.5 0 0 0 .707.707Zm-.217 8.243c.28-.28.22-.76-.09-1.03l-1.8-1.8a.695.695 0 0 0-1.03-.09c-.28.28-.22.76.09 1.03l1.8 1.8c.27.27.75.33 1.03.09Zm-3.12-3.12a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03Zm2.42-2.42a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03Zm2.42-2.42a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03Zm-3.12-3.12a.695.695 0 0 0-1.03-.09l-1.8 1.8c-.28.28-.22.76.09 1.03l.09.09a.695.695 0 0 0 1.03-.09l1.8-1.8c.27-.27.33-.75.09-1.03a.5.5 0 1 0-1 0v1.293a.5.5 0 0 0 .707.707L3.414 11l-2.121 2.121a.5.5 0 0 0 .707.707L4.121 11.707a.5.5 0 0 0 .707-.707L2.707 9H4.12a.5.5 0 1 0 0-1H2.707l2.122-2.121a.5.5 0 0 0-.707-.707L2 7.121V5.707a.5.5 0 0 0-1 0v1.414l-2.121 2.121a.5.5 0 0 0 .707.707L1.707 8.414a.5.5 0 0 0 .707-.707L.293 5.586a.5.5 0 0 0 0 .707l2.121 2.121V8a.5.5 0 0 0 1 0V6.586l2.121-2.121a.5.5 0 0 0-.707-.707L5.586 5.879a.5.5 0 0 0-.707.707L6 8.707l-1.707 1.707a.5.5 0 0 0 .707.707L6.293 9.414a.5.5 0 0 0 .707-.707L5.293 7a.5.5 0 0 0-.707-.707l-1.707 1.707a.5.5 0 0 0 .707.707L5.707 8.121a.5.5 0 0 0 .707-.707L4.293 5.293a.5.5 0 0 0-.707.707L5.707 8.121z"/></svg>`,
-        support: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16" title="Support"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>`,
-    };
+<script src="gamedata.js"></script>
+<script>
+/* ══════════════════════════════════════════════
+   DB LAYER
+   ══════════════════════════════════════════════ */
+var DB_PREFIX='eqsm_';
+var DB_TABLES=['campaign','sessions','scenes','npcs','villains','bestiary','loot','players'];
+function dbKey(t){return DB_PREFIX+t}
+function dbLoad(t){try{var d=localStorage.getItem(dbKey(t));return d?JSON.parse(d):null}catch(e){return null}}
+function dbSave(t,d){try{localStorage.setItem(dbKey(t),JSON.stringify(d));return true}catch(e){return false}}
+function dbGetAll(t){return dbLoad(t)||[]}
+function dbGetById(t,id){return dbGetAll(t).find(function(i){return i.id===id})||null}
+function dbCreate(t,item){var items=dbGetAll(t);if(!item.id)item.id=t.substring(0,3)+'-'+Date.now().toString(36);items.push(item);dbSave(t,items);return item}
+function dbUpdate(t,id,updates){var items=dbGetAll(t);var idx=items.findIndex(function(i){return i.id===id});if(idx===-1)return;Object.keys(updates).forEach(function(k){items[idx][k]=updates[k]});dbSave(t,items);return items[idx]}
+function dbDelete(t,id){dbSave(t,dbGetAll(t).filter(function(i){return i.id!==id}))}
+function dbSaveSingle(t,d){localStorage.setItem(dbKey(t),JSON.stringify(d))}
+function dbLoadSingle(t){try{var d=localStorage.getItem(dbKey(t));return d?JSON.parse(d):null}catch(e){return null}}
 
-    // --- STATE MANAGEMENT ---
-    const LS_KEY = "ds_encounter_html_v5";
-    let state = {};
+function seedIfEmpty(){
+  if(dbLoad('_initialized'))return;
+  DB_TABLES.forEach(function(t){if(!dbLoad(t))dbSave(t,t==='campaign'?null:[])});
+  dbSave('_initialized',true);
+}
+seedIfEmpty();
 
-   function initState() {
-        const defaultState = {
-            isLibraryOpen: true,
-            isInitiativeOpen: true,
-            builder: [],
-            savedScenes: [],
-            tracker: null,
-            party: { teamName: "Aventureros", director: "Director del Juego" },
-            filters: { keywords: [], organizations: [], levels: [], q: '' },
-            openMonsterCards: {},
-            openUnitCards: {},
-            activeUnitTabs: {},
-            selectedUnitId: null,
-            isHeroModalOpen: false,
-            conditionDropdownOpen: null,
-            panelWidths: {
-                library: '33.33%',
-                initiative: '33.33%'
-            },
-            selectedLairId: null,
-            collapsedRaceGroups: [],
-            isFiltersOpen: true,
-        };
-        try {
-            const loadedState = JSON.parse(localStorage.getItem(LS_KEY));
-            state = { ...defaultState, ...(loadedState || {}) };
-            
-            // --- INICIO DE LA SOLUCIÓN DEFINITIVA ---
+/* ══════════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════════ */
+var currentView='campaign';
+var selectedLibTab='npcs';
+var selectedLibItem=null;
+var selectedSceneId=null;
+var selectedBeatIdx=0;
+var combat=null;
+var expandedUnits={};
+var dragSrc=null;
+var modalStack=[];
 
-            // 1. Asegura que savedScenes siempre sea un arreglo válido.
-            if (!Array.isArray(state.savedScenes)) { 
-                state.savedScenes = [];
-            }
+/* ══════════════════════════════════════════════
+   HELPERS
+   ══════════════════════════════════════════════ */
+function resolvePlayer(p){
+  if(!p)return null;
+  var G=typeof GAMEDATA!=='undefined'?GAMEDATA:null;
+  var cls=G?G.classes.find(function(c){return c.id===p.classId}):null;
+  var sub=cls?cls.subclasses.find(function(s){return s.id===p.subclassId}):null;
+  var kit=G?G.kits.find(function(k){return k.id===p.kitId}):null;
+  var fac=G?G.factions.find(function(f){return f.id===p.factionId}):null;
+  var ab=[];
+  if(cls)cls.abilities.forEach(function(a){ab.push(a)});
+  if(sub)sub.abilities.forEach(function(a){ab.push(a)});
+  if(kit)ab.push({name:kit.ability.name,type:'Kit',desc:kit.ability.desc,cost:kit.ability.cost});
+  return{id:p.id,name:p.name,initial:p.initial||p.name.charAt(0),bg:p.bg||'#444',fg:p.fg||'#fff',echo:p.echo||0,
+    cls:cls?cls.nameEs:(p.classId||''),sub:sub?sub.name:'',kit:kit?kit.name:'',plano:p.plano||1,
+    faction:fac?fac.name:(p.factionId||''),factionColor:fac?fac.color:'#666',
+    hp:(G?G.rules.hpBase:10)+(kit?kit.hpBonus:0),aenRegen:(G?G.rules.aenPerTurn:2)+(kit?kit.aenBonus:0),
+    abilities:ab,backstory:p.backstory||''}
+}
 
-            // 2. Asegura que 'filters' y sus propiedades internas siempre tengan la estructura correcta.
-            // Esto fusiona los filtros por defecto con cualquier filtro que se haya cargado,
-            // garantizando que 'keywords', 'organizations', etc., siempre existan como arreglos.
-            state.filters = { ...defaultState.filters, ...(state.filters || {}) };
+function getHpColor(pct){if(pct>60)return'var(--green)';if(pct>25)return'var(--orange)';return'var(--red)'}
+function diffLabel(d){return{easy:'Fácil',medium:'Medio',hard:'Duro',boss:'Jefe'}[d]||d}
+function rarityClass(r){return{common:'rarity-common',uncommon:'rarity-uncommon',rare:'rarity-rare',legendary:'rarity-legendary'}[r]||'rarity-common'}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,4)}
 
-            // --- FIN DE LA SOLUCIÓN DEFINITIVA ---
+/* ══════════════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════════════ */
+var breadcrumbs={campaign:'📜 <span>Campaña</span>',scenes:'🎬 <span>Scene Builder</span>',library:'📖 <span>Biblioteca</span>',players:'👥 <span>Personajes</span>',session:'⚡ <span>Sesión en Vivo</span>',settings:'⚙️ <span>Configuración</span>'};
+function nav(id){
+  currentView=id;
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active')});
+  var t=document.getElementById('view-'+id);if(t)t.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(function(i){i.classList.remove('active')});
+  var items=document.querySelectorAll('.sb-item');
+  var map={campaign:0,scenes:1,library:2,players:3,session:4};
+  if(map[id]!==undefined)items[map[id]].classList.add('active');
+  document.getElementById('breadcrumb').innerHTML=breadcrumbs[id]||'';
+  renderView(id);
+}
 
-        } catch (e) {
-            console.error("Failed to load state, using defaults:", e);
-            state = defaultState;
-        }
+function renderView(id){
+  if(id==='campaign')renderCampaign();
+  if(id==='scenes')renderSceneBuilder(selectedSceneId);
+  if(id==='library')renderLibrary();
+  if(id==='players')renderPlayers();
+  if(id==='session')renderSession();
+  if(id==='settings')renderSettings();
+  renderSidebar();
+}
+
+function renderSidebar(){
+  var camp=dbLoadSingle('campaign');
+  var ci=document.getElementById('sb-campaign-info');
+  if(ci){
+    if(camp){ci.innerHTML='<div class="sb-campaign-label">CAMPAÑA ACTIVA</div><div class="sb-campaign-name">'+camp.name+'</div>'}
+    else{ci.innerHTML='<div class="sb-campaign-label">SIN CAMPAÑA</div>'}
+  }
+  var pb=document.getElementById('sb-players-bar');
+  if(pb){
+    var pls=dbGetAll('players');
+    if(pls.length===0){pb.innerHTML=''}
+    else{
+      var h='<div class="sb-players-label">EN MESA</div><div class="sb-player-list">';
+      pls.forEach(function(p){h+='<div class="sb-player" style="background:'+(p.bg||'#444')+';color:'+(p.fg||'#fff')+'" title="'+p.name+'">'+( p.initial||p.name.charAt(0))+'</div>'});
+      h+='</div>';pb.innerHTML=h;
     }
+  }
+}
 
-    function saveState() {
-        try {
-            const stateToSave = { ...state, openMonsterCards: {}, openUnitCards: {}, activeUnitTabs: {} };
-            localStorage.setItem(LS_KEY, JSON.stringify(stateToSave));
-        } catch (e) {
-            console.error("Failed to save state:", e);
-        }
-    }
-    
-    // --- HELPERS ---
-    function fmtMod(n) { return n > 0 ? `+${n}` : String(n); }
-    function cryptoRandom() {
-        if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-            const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0].toString(36);
-        }
-        return Math.random().toString(36).slice(2);
-    }
-    function getMonsterById(id) {
-        return SEED_MONSTERS.find(m => m.id === id);
-    }
-    function getLairById(id) {
-        return SEED_LAIRS.find(l => l.id === id);
-    }
-    function toggleInArray(arr, val) {
-        return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
-    }
-    function getHealthColor(percentage) {
-        const p = percentage / 100;
-        const r = p > 0.5 ? 255 - 255 * (p - 0.5) * 2 : 255;
-        const g = p < 0.5 ? 255 * p * 2 : 255;
-        return `rgb(${Math.round(r)}, ${Math.round(g)}, 0)`;
-    }
-
-    // --- RENDER FUNCTIONS ---
-    const appContainer = document.getElementById('app-container');
-    const modalContainer = document.getElementById('modal-container');
-
-    function render() {
-        const { isLibraryOpen, isInitiativeOpen, tracker, party, isHeroModalOpen, panelWidths } = state;
-        
-        const libraryStyle = isLibraryOpen ? `width: ${panelWidths.library};` : 'width: auto;';
-        const initiativeStyle = isInitiativeOpen ? `width: ${panelWidths.initiative};` : 'width: auto;';
-
-        appContainer.innerHTML = `
-            <header class="flex-shrink-0">
-                ${tracker ? renderTrackerHeader(party, tracker) : ''}
-            </header>
-
-            <main class="flex-grow flex gap-0 overflow-hidden">
-                <div id="library-container" style="${libraryStyle}" class="transition-all duration-300 flex-shrink-0 min-h-0">
-                    ${renderLibraryPanel()}
-                </div>
-                <div id="library-resizer" class="resizer" data-panel="library"></div>
-
-                <div id="main-container" class="flex-grow flex flex-col space-y-4 overflow-auto custom-scrollbar min-h-0 px-4">
-                    ${!tracker ? renderBuilderPanel() : ''}
-                    ${tracker ? renderTrackerPanel() : ''}
-                </div>
-                
-                <div id="initiative-resizer" class="resizer" data-panel="initiative"></div>
-                <div id="initiative-container" style="${initiativeStyle}" class="transition-all duration-300 flex-shrink-0 min-h-0">
-                    ${tracker ? renderInitiativePanel() : ''}
-                </div>
-            </main>
-        `;
-        
-        modalContainer.innerHTML = isHeroModalOpen ? renderHeroModal() : '';
-        addEventListeners();
-    }
-
-    function renderTrackerHeader(party, tracker) {
-        return `
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 mb-4 flex justify-between items-center">
-                <div class="flex items-center gap-4 text-sm">
-                    <div>
-                        <span class="opacity-70">Equipo: </span>
-                        <input type="text" data-party-field="teamName" value="${party.teamName}" class="bg-slate-800 rounded px-2 py-1 w-40"/>
-                    </div>
-                    <div>
-                        <span class="opacity-70">Director: </span>
-                        <input type="text" data-party-field="director" value="${party.director}" class="bg-slate-800 rounded px-2 py-1 w-40"/>
-                    </div>
-                </div>
-                <div class="flex items-center gap-6 text-right">
-                    <div>
-                        <div class="text-xs opacity-70">Ronda</div>
-                        <div class="text-lg font-semibold">${tracker.round}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs opacity-70">Turno</div>
-                        <div class="text-lg font-semibold">${tracker.order.length > 0 ? tracker.turnIndex + 1 : 0}/${tracker.order.length}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs opacity-70">Unidades</div>
-                        <div class="text-lg font-semibold">${tracker.units.length}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs opacity-70">Malice</div>
-                        <div class="text-2xl font-bold text-violet-400">${tracker.malice}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderLibraryPanel() {
-        const { filters, isLibraryOpen, collapsedRaceGroups, isFiltersOpen } = state;
-        const filterOptions = (() => {
-            const keywords = [...new Set(SEED_MONSTERS.flatMap(m => m.keywords.filter(k => k !== 'humanoid')))].sort();
-            const organizations = [...new Set(SEED_MONSTERS.map(m => m.organization))].sort();
-            const levels = [...new Set(SEED_MONSTERS.map(m => m.level))].sort((a,b) => a - b);
-            return { keywords, organizations, levels };
-        })();
-
-        const filteredMonsters = SEED_MONSTERS.filter(m => {
-            const nameMatch = filters.q === "" || m.name.toLowerCase().includes(filters.q.toLowerCase());
-            const keywordMatch = filters.keywords.length === 0 || m.keywords.some(k => filters.keywords.includes(k));
-            const orgMatch = filters.organizations.length === 0 || filters.organizations.includes(m.organization);
-            const levelMatch = filters.levels.length === 0 || filters.levels.includes(m.level.toString());
-            return nameMatch && keywordMatch && orgMatch && levelMatch;
+/* ══════════════════════════════════════════════
+   RENDER: CAMPAIGN
+   ══════════════════════════════════════════════ */
+function renderCampaign(){
+  var el=document.getElementById('campaign-content');if(!el)return;
+  var camp=dbLoadSingle('campaign');
+  if(!camp){
+    el.innerHTML='<div class="empty-state"><div class="empty-state-title">No hay campaña activa</div><div class="empty-state-desc">Crea una campaña para empezar a planear tus sesiones y escenas.</div><button class="btn btn-primary" onclick="openModal(\'campaign\',null)">Crear campaña</button></div>';
+    return;
+  }
+  var h='<div class="section-label">'+camp.name+'</div>';
+  var arcs=camp.arcs||[];
+  var arc=arcs[0]||{beats:[]};
+  // Beats
+  h+='<div class="beats-row">';
+  (arc.beats||[]).forEach(function(b,i){
+    var cls='beat-card'+(i===selectedBeatIdx?' active':'');
+    h+='<div class="'+cls+'" onclick="selectedBeatIdx='+i+';renderCampaign()">';
+    h+='<div class="beat-num">BEAT '+(i+1)+'</div><div class="beat-name">'+b.name+'</div></div>';
+    if(i<arc.beats.length-1)h+='<div class="beat-connector">—</div>';
+  });
+  h+='<div style="flex-shrink:0;display:flex;align-items:center"><button class="btn" onclick="addBeat()">+</button></div>';
+  h+='</div>';
+  // Scenes for selected beat
+  var scenes=dbGetAll('scenes');
+  var beat=arc.beats[selectedBeatIdx];
+  var beatScenes=beat?scenes.filter(function(s){return(beat.scenes||[]).indexOf(s.id)>-1}):[];
+  // Also show unassigned scenes
+  var allAssigned=[];arcs.forEach(function(a){(a.beats||[]).forEach(function(b){allAssigned=allAssigned.concat(b.scenes||[])})});
+  var unassigned=scenes.filter(function(s){return allAssigned.indexOf(s.id)===-1});
+  h+='<div class="scenes-header flex-between"><div class="section-label" style="margin:0">ESCENAS'+(beat?' — '+beat.name:'')+'</div><button class="btn" onclick="openModal(\'scene\',null)">+ Nueva escena</button></div>';
+  var displayScenes=beat?beatScenes:unassigned;
+  if(displayScenes.length===0){
+    h+='<div class="empty-state"><div class="empty-state-desc">'+(beat?'No hay escenas en este beat.':'No hay escenas sin asignar.')+'</div></div>';
+  } else {
+    h+='<div class="scene-grid">';
+    displayScenes.forEach(function(s){
+      var typeClass=s.type==='combat'?'combat':'social';
+      var badge=s.type==='combat'?'badge-combat':'badge-social';
+      var badgeText=s.type==='combat'?'Combate':'Narrativa';
+      var statusCls=s.debrief?'status-debrief':(s.status==='active'?'status-active':'status-ready');
+      var statusText=s.debrief?'✓ Debrief':(s.status==='active'?'▶ Activa':'Lista');
+      h+='<div class="scene-card '+typeClass+'" onclick="selectedSceneId=\''+s.id+'\';nav(\'scenes\')">';
+      h+='<span class="scene-badge '+badge+'">'+badgeText+'</span>';
+      if(s.sporadic)h+=' <span style="font-size:11px;color:var(--gold)">(esporádica)</span>';
+      h+='<span class="scene-status '+statusCls+'">'+statusText+'</span>';
+      h+='<div class="scene-name">'+s.name+'</div>';
+      if(s.setup&&s.setup.hook)h+='<div class="scene-detail">'+s.setup.hook+'</div>';
+      if(s.type==='combat')h+='<button class="btn btn-primary" style="margin-top:10px;width:100%;justify-content:center" onclick="event.stopPropagation();startCombatFromScene(\''+s.id+'\')">Iniciar combate</button>';
+      // Debrief consequences
+      if(s.debrief&&s.debrief.consequences&&s.debrief.consequences.length>0){
+        s.debrief.consequences.forEach(function(c){
+          h+='<div class="scene-flag flag-consequence">⚠ '+c+'</div>';
         });
-
-        const groupedByRace = filteredMonsters.reduce((acc, m) => {
-            const race = m.keywords.find(k => k === 'hobgoblin') || m.keywords.find(k => k !== 'humanoid') || 'other';
-            if (!acc[race]) acc[race] = [];
-            acc[race].push(m);
-            return acc;
-        }, {});
-
-        return `
-            <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-2 h-full flex flex-col">
-                <div class="flex justify-between items-center">
-                    <div class="font-medium ${!isLibraryOpen ? 'hidden' : ''}">Biblioteca</div>
-                    <button data-action="toggle-library" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs">
-                        ${isLibraryOpen ? '<<' : '>>'}
-                    </button>
-                </div>
-                <div class="${!isLibraryOpen ? 'hidden' : ''}">
-                    <input id="search-input" class="w-full bg-slate-800 rounded-lg px-2 py-1 text-sm" placeholder="Buscar por nombre..." value="${filters.q}" />
-                    
-                    <div class="text-xs mt-2 space-y-2">
-                        <div data-action="toggle-filters" class="font-bold cursor-pointer">Filtros ${isFiltersOpen ? '▼' : '►'}</div>
-                        <div class="${isFiltersOpen ? '' : 'hidden'}">
-                            <div>
-                                <div class="font-bold">Raza</div>
-                                <div class="flex flex-wrap gap-2 mt-1">${filterOptions.keywords.map(k => `<label class="flex items-center gap-1"><input type="checkbox" data-filter="keywords" value="${k}" ${filters.keywords.includes(k) ? 'checked' : ''}>${k}</label>`).join('')}</div>
-                            </div>
-                            <div>
-                                <div class="font-bold">Organización</div>
-                                <div class="flex flex-wrap gap-2 mt-1">${filterOptions.organizations.map(o => `<label class="flex items-center gap-1"><input type="checkbox" data-filter="organizations" value="${o}" ${filters.organizations.includes(o) ? 'checked' : ''}>${o}</label>`).join('')}</div>
-                            </div>
-                            <div>
-                                <div class="font-bold">Nivel</div>
-                                <div class="flex flex-wrap gap-2 mt-1">${filterOptions.levels.map(l => `<label class="flex items-center gap-1"><input type="checkbox" data-filter="levels" value="${l}" ${filters.levels.includes(l.toString()) ? 'checked' : ''}>${l}</label>`).join('')}</div>
-                            </div>
-                            <button data-action="reset-filters" class="w-full text-center py-1 mt-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs">Limpiar filtros</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex-grow overflow-auto mt-2 custom-scrollbar pr-2 ${!isLibraryOpen ? 'hidden' : ''}">
-                    ${Object.keys(groupedByRace).sort().map(race => `
-                        <div class="py-1">
-                            <h3 data-action="toggle-race-group" data-race="${race}" class="cursor-pointer text-lg font-bold text-slate-400 sticky top-0 bg-slate-900 py-1">${race.charAt(0).toUpperCase() + race.slice(1)}</h3>
-                            <div class="${collapsedRaceGroups.includes(race) ? 'hidden' : ''}">
-                                ${groupedByRace[race].sort((a,b) => a.name.localeCompare(b.name)).map(m => renderMonsterCard(m)).join('')}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    function renderMonsterCard(m) {
-        const isOpen = state.openMonsterCards[m.id];
-        return `
-            <div class="py-2 pl-4 border-l border-slate-800">
-                <div class="flex items-center justify-between">
-                    <div data-action="toggle-monster-card" data-monster-id="${m.id}" class="cursor-pointer flex-grow pr-4">
-                        <div class="text-sm font-medium">${m.name}</div>
-                        <div class="text-xs opacity-70 flex items-center gap-1.5">
-                            <span>L${m.level}</span> ·
-                            <span>${m.organization}</span> ·
-                            <span class="flex items-center gap-1">${ROLE_ICONS[m.role] || ''} ${m.role}</span> ·
-                            <span>EV ${m.ev}</span> ·
-                            <span>FS ${m.freeStrike}</span>
-                        </div>
-                        <div class="text-[10px] opacity-60">${m.size} · Speed ${m.speed} · ${m.source}</div>
-                    </div>
-                    <button data-action="add-monster" data-monster-id="${m.id}" class="px-2 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 text-xs flex-shrink-0">Add</button>
-                </div>
-                ${isOpen ? `
-                    <div class="mt-2 text-xs bg-slate-900/60 border border-slate-800 rounded-lg p-2 space-y-2">
-                        ${m.notes ? `<div class="flex gap-4">${m.notes.movement ? `<div><div class="opacity-70">Movement</div><div>${m.notes.movement}</div></div>` : ''}${m.notes.withCaptain ? `<div><div class="opacity-70">With Captain</div><div>${m.notes.withCaptain}</div></div>` : ''}</div>` : ''}
-                        ${m.attributes ? `<div><div class="font-medium mb-1">Attributes</div><div>Might ${fmtMod(m.attributes.might)} · Agility ${fmtMod(m.attributes.agility)} · Reason ${fmtMod(m.attributes.reason)} · Intuition ${fmtMod(m.attributes.intuition)} · Presence ${fmtMod(m.attributes.presence)}</div></div>` : ''}
-                        ${m.traits?.length ? `<div><div class="font-medium mb-1">Traits</div><ul class="list-disc ml-4">${m.traits.map(t => `<li><b>${t.name}.</b> ${t.text}</li>`).join('')}</ul></div>` : ''}
-                        ${m.abilities?.length ? `<div><div class="font-medium mb-1">Abilities</div><div class="space-y-2">${m.abilities.map(a => renderAbilityBlock(a)).join('')}</div></div>` : ''}
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-
-    function renderAbilityBlock(ability, isTracker = false, unitId = null) {
-        const canAfford = isTracker && ability.malice ? state.tracker.malice >= ability.malice : true;
-        const clickableClass = isTracker && canAfford ? 'border-slate-800 hover:border-slate-600 cursor-pointer' : 'border-slate-800';
-        return `
-            <div data-action="${isTracker ? 'use-ability' : ''}" data-ability-id="${ability.id}" ${isTracker ? `data-unit-id="${unitId}"` : ''} class="p-2 rounded border ${clickableClass} ${!canAfford ? 'opacity-50 cursor-not-allowed' : ''}">
-                <div class="flex items-center justify-between">
-                    <div class="font-medium">${ability.name} ${ability.type === 'signature' ? `<span class="opacity-60">(Signature)</span>` : ''}</div>
-                    <div class="opacity-70">${ability.action}</div>
-                </div>
-                <div class="opacity-80">${ability.distance || ''}${ability.area ? ` · ${ability.area}` : ''}${ability.keywords?.length ? ` · ${ability.keywords.join(', ')}` : ''}${ability.malice ? `<span class="font-bold text-violet-400"> · Malice ${ability.malice}</span>` : ''}${ability.usage ? ` · ${ability.usage}` : ''}</div>
-                ${ability.tiers?.length ? `<div class="mt-1">${ability.tiers.map(t => `<div>${t.threshold}: ${t.effect}</div>`).join('')}</div>` : ''}
-                ${ability.onHit ? `<div>On Hit: ${ability.onHit}</div>` : ''}
-                ${ability.text ? `<div>${ability.text}</div>` : ''}
-                ${ability.trigger ? `<div>Trigger: ${ability.trigger}</div>` : ''}
-            </div>
-        `;
-    }
-
-    function renderBuilderPanel() {
-        const { builder, savedScenes } = state;
-        const totalEV = builder.reduce((acc, p) => {
-            const m = getMonsterById(p.monsterId);
-            if (!m) return acc;
-            if (m.organization === 'minion') return acc + m.ev;
-            return acc + m.ev * (p.count || 1);
-        }, 0);
-        const totalUnits = builder.reduce((acc, p) => acc + (getMonsterById(p.monsterId)?.organization === 'minion' ? 1 : (p.count || 1)), 0);
-
-        return `
-            <div class="space-y-4">
-                <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div class="font-medium">Creador de Encuentros</div>
-                        <div class="flex gap-2">
-                            <button data-action="start-encounter" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40" ${builder.length === 0 ? 'disabled' : ''}>Iniciar Encuentro</button>
-                            <button data-action="save-scene" class="px-3 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-600 disabled:opacity-40" ${builder.length === 0 ? 'disabled' : ''}>Guardar Escena</button>
-                            <button data-action="reset-builder" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700">Limpiar</button>
-
-                        </div>
-                    </div>
-                    <div>
-                        <input id="scene-name-input" class="w-full bg-slate-800 rounded-lg px-2 py-1 text-sm" placeholder="Nombre de la Escena..." />
-                    </div>
-                    <div class="text-sm">
-                        <label for="lair-select" class="opacity-70">Entorno:</label>
-                        <select id="lair-select" data-action="select-lair" class="w-full bg-slate-800 rounded-lg px-2 py-1 mt-1">
-                            <option value="none">Ninguno</option>
-                            ${SEED_LAIRS.map(l => `<option value="${l.id}" ${state.selectedLairId === l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-sm">
-                        <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70">Total EV</div><div class="text-lg font-semibold">${totalEV}</div></div>
-                        <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3"><div class="text-xs opacity-70"># Unidades</div><div class="text-lg font-semibold">${totalUnits}</div></div>
-                    </div>
-                    <div class="space-y-2">
-                        ${builder.length === 0 ? `<div class="text-sm opacity-70">Añade monstruos desde la biblioteca y pulsa <b>Iniciar Encuentro</b>.</div>` : builder.map(p => renderPlacedMonster(p)).join('')}
-                    </div>
-                </div>
-
-                <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3">
-                    <div class="font-medium">Aventura - Escenas Guardadas</div>
-                    <div class="space-y-2">
-                        ${savedScenes.length === 0 ? `<div class="text-sm opacity-70">No hay escenas guardadas.</div>` : savedScenes.map(s => renderSavedScene(s)).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderSavedScene(scene) {
-        const totalEV = scene.monsters.reduce((acc, p) => {
-            const m = getMonsterById(p.monsterId);
-            if (!m) return acc;
-            if (m.organization === 'minion') return acc + m.ev;
-            return acc + m.ev * (p.count || 1);
-        }, 0);
-        const totalUnits = scene.monsters.reduce((acc, p) => acc + (getMonsterById(p.monsterId)?.organization === 'minion' ? 1 : (p.count || 1)), 0);
-
-        return `
-            <div class="p-3 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center justify-between">
-                <div>
-                    <div class="font-medium">${scene.name}</div>
-                    <div class="text-xs opacity-70">EV: ${totalEV} · Unidades: ${totalUnits} · Entorno: ${scene.lairId ? getLairById(scene.lairId).name : 'Ninguno'}</div>
-                </div>
-                <div class="flex gap-2">
-                    <button data-action="activate-scene" data-scene-id="${scene.id}" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-xs">Activar</button>
-                    <button data-action="delete-scene" data-scene-id="${scene.id}" class="px-3 py-1.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-xs">Borrar</button>
-                </div>
-            </div>
-        `;
-    }
-    
-    function renderPlacedMonster(p) {
-        const m = getMonsterById(p.monsterId);
-        if (!m) return '';
-        const countLabel = m.organization === 'minion' ? 'Minions' : 'Copias';
-        return `
-            <div class="p-3 rounded-xl border border-slate-800 bg-slate-900/60">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="font-medium">${m.name}</div>
-                        <div class="text-xs opacity-70">L${m.level} · ${m.organization} · ${m.role} · EV ${m.ev} · FS ${m.freeStrike}</div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="flex items-center gap-1 text-xs">
-                            <span>${countLabel}</span>
-                            <input type="number" min="1" max="32" data-action="set-placed-count" data-instance-id="${p.instanceId}" class="w-16 bg-slate-800 rounded px-2 py-1" value="${p.count}">
-                        </div>
-                        <button data-action="remove-placed" data-instance-id="${p.instanceId}" class="px-2 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 text-xs">Quitar</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderTrackerPanel() {
-        const { tracker } = state;
-        if (!tracker) return '';
-        
-        const activeUnitIds = tracker.order.slice(tracker.turnIndex);
-        const inactiveUnitIds = tracker.order.slice(0, tracker.turnIndex);
-
-        const activeUnits = activeUnitIds.map(id => tracker.units.find(u => u.unitId === id));
-        const inactiveUnits = inactiveUnitIds.map(id => tracker.units.find(u => u.unitId === id));
-
-        return `
-            <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-3 h-full flex flex-col">
-                <div class="flex items-center justify-between flex-shrink-0">
-                    <div class="font-medium">Rastreador</div>
-                    <div class="flex gap-2">
-                         <button data-action="open-hero-modal" class="px-3 py-1.5 rounded-xl bg-blue-700 hover:bg-blue-600">Agregar Héroes</button>
-                         <button data-action="end-encounter" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700">Terminar</button>
-                    </div>
-                </div>
-                <div id="tracker-list" class="flex-grow overflow-auto custom-scrollbar pr-1">
-                    <div class="text-lg font-bold text-emerald-400">Activos</div>
-                    <div class="space-y-2">
-                        ${activeUnits.map((u, idx) => renderUnitRow(u, idx === 0)).join('')}
-                    </div>
-                    
-                    ${inactiveUnitIds.length > 0 ? `<div class="text-lg font-bold text-slate-500 pt-4">Inactivos</div>` : ''}
-                    <div class="space-y-2">
-                        ${inactiveUnits.map(u => renderUnitRow(u, false)).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    function renderInitiativePanel() {
-        const { tracker, isInitiativeOpen } = state;
-        if (!tracker) return '';
-        
-        const livingUnitIds = tracker.order.filter(id => {
-            const unit = tracker.units.find(u => u.unitId === id);
-            return !unit || unit.role === 'hero' || unit.role === 'lair' || unit.hp > 0;
-        });
-        const deadUnitIds = tracker.order.filter(id => {
-            const unit = tracker.units.find(u => u.unitId === id);
-            return unit && unit.role !== 'hero' && unit.role !== 'lair' && unit.hp <= 0;
-        });
-        const displayOrder = [...livingUnitIds, ...deadUnitIds];
-
-        return `
-            <div class="rounded-2xl p-4 bg-slate-900 border border-slate-800 space-y-2 h-full flex flex-col">
-                <div class="flex justify-between items-center">
-                    <div class="font-medium ${!isInitiativeOpen ? 'hidden' : ''}">Iniciativa</div>
-                    <button data-action="toggle-initiative" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs">
-                        ${isInitiativeOpen ? '>>' : '<<'}
-                    </button>
-                </div>
-                <div id="initiative-list" class="flex-grow overflow-auto custom-scrollbar pr-2 ${!isInitiativeOpen ? 'hidden' : ''}">
-                    ${displayOrder.map((id) => {
-                        const unit = tracker.units.find(u => u.unitId === id);
-                        const originalIdx = tracker.order.indexOf(id);
-                        const isHero = unit.role === 'hero';
-                        const isLair = unit.role === 'lair';
-                        const isActive = originalIdx === tracker.turnIndex;
-                        const isDead = !isHero && !isLair && unit.hp <= 0;
-                        const monster = isHero || isLair ? null : getMonsterById(unit.monsterId);
-                        const hasManeuver = !isHero && !isLair && monster?.abilities?.some(a => a.action === 'maneuver');
-                        let allActionsUsed = false;
-                        if (isHero) {
-                            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack1 && unit.actionsUsed.bonusAction;
-                        } else if (!isLair) {
-                            const attacksDone = unit.maxAttacks > 1 ? (unit.actionsUsed.attack1 && unit.actionsUsed.attack2) : unit.actionsUsed.attack1;
-                            allActionsUsed = unit.actionsUsed.move && attacksDone && (!hasManeuver || unit.actionsUsed.maneuver);
-                        }
-                        
-                        let itemStyle = '';
-                        let itemClass = 'p-2 my-1 rounded-lg text-xs flex items-center justify-between gap-1 cursor-grab';
-
-                        if (isHero) {
-                            itemClass += ' bg-blue-900/50';
-                        } else if (isLair) {
-                            itemClass += ' bg-violet-900/50';
-                        } else if (isDead) {
-                            itemClass += ' bg-black/50 filter grayscale';
-                            itemStyle = `border: 2px solid #404040;`;
-                        } else {
-                            const pct = Math.max(0, Math.min(100, Math.round((unit.hp / unit.hpMax) * 100)));
-                            const healthColor = getHealthColor(pct);
-                            itemClass += ' bg-slate-800';
-                            itemStyle = `border: 2px solid ${healthColor};`;
-                        }
-
-                        if (isActive) {
-                            itemClass += ' ring-2 ring-emerald-500';
-                        }
-                        if (allActionsUsed && !isDead) {
-                            itemClass += ' filter grayscale';
-                        }
-
-                        return `
-                        <div draggable="true" data-action="select-unit-from-initiative" data-unit-id="${id}" style="${itemStyle}" class="${itemClass}">
-                            <span class="truncate"><b>${originalIdx + 1}.</b> ${unit?.name || id}</span>
-                        </div>
-                    `}).join('')}
-                </div>
-                 <textarea id="notes-textarea" class="w-full bg-slate-800 rounded-lg p-2 text-sm mt-4 flex-shrink-0 ${!isInitiativeOpen ? 'hidden' : ''}" placeholder="Notas rápidas del encuentro...">${tracker.notes || ''}</textarea>
-            </div>
-        `;
-    }
-
-    function renderUnitRow(u, isActive) {
-        if (!u) return '';
-        const isHero = u.role === 'hero';
-        const isLair = u.role === 'lair';
-        const monster = isHero || isLair ? null : getMonsterById(u.monsterId);
-        const hasManeuver = !isHero && !isLair && monster?.abilities?.some(a => a.action === 'maneuver');
-        const isDead = !isHero && !isLair && u.hp <= 0;
-        const isBlooded = !isHero && !isLair && !isDead && u.hp <= u.hpMax * 0.25;
-        const isSelected = state.selectedUnitId === u.unitId;
-        const pct = isHero || isLair ? 100 : Math.max(0, Math.min(100, Math.round((u.hp / u.hpMax) * 100)));
-        const healthColor = getHealthColor(pct);
-        const isOpen = state.openUnitCards[u.unitId];
-        const activeTab = state.activeUnitTabs[u.unitId] || 'acciones';
-        
-        let allActionsUsed = false;
-        if (isHero) {
-            allActionsUsed = u.actionsUsed.move && u.actionsUsed.attack1 && u.actionsUsed.bonusAction;
-        } else if (isLair) {
-            allActionsUsed = Object.values(u.actionsUsed).some(used => used);
-        } else {
-            const attacksDone = u.maxAttacks > 1 ? (u.actionsUsed.attack1 && u.actionsUsed.attack2) : u.actionsUsed.attack1;
-            allActionsUsed = u.actionsUsed.move && attacksDone && (!hasManeuver || u.actionsUsed.maneuver);
-        }
-
-        let borderColor = "border-slate-800";
-        if (isActive && !isDead) borderColor = "border-emerald-500 shadow-lg shadow-emerald-500/20";
-        else if (isSelected && !isDead) borderColor = "border-blue-500 shadow-lg shadow-blue-500/20";
-        if (isLair) borderColor = "border-violet-500";
-
-        const tabButton = (tabName, label) => `<button data-action="set-unit-tab" data-unit-id="${u.unitId}" data-tab-name="${tabName}" class="px-3 py-1 text-xs rounded-t-lg ${activeTab === tabName ? 'bg-slate-800' : 'bg-slate-900'}">${label}</button>`;
-        
-        const conditionIcons = u.conditions.map(c => `<span class="text-xs bg-red-800 px-1.5 py-0.5 rounded-md" title="${CONDITIONS_MAP[c] || c}">${c.substring(0,3)}</span>`).join('');
-
-        if (isLair) {
-            const lair = getLairById(u.lairId);
-            return `
-                <div id="unit-${u.unitId}" class="unit-card p-3 rounded-xl border ${borderColor} ${allActionsUsed ? 'filter grayscale opacity-60' : 'bg-slate-900/60'}">
-                    <div class="font-medium text-sm flex items-center gap-2">
-                        <span>${u.name}</span>
-                        <span class="opacity-60 text-xs">${u.label}</span>
-                    </div>
-                    <div class="mt-2 text-xs space-y-2">
-                        ${lair.lairActions.map(action => `
-                            <div data-action="use-lair-action" data-unit-id="${u.unitId}" data-lair-action-id="${action.id}" class="p-2 rounded border border-slate-800 hover:border-slate-600 cursor-pointer ${u.actionsUsed[action.id] ? 'filter grayscale opacity-50' : ''}">
-                                <b>${action.name}:</b> ${action.desc}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        
-        return `
-            <div id="unit-${u.unitId}" class="unit-card p-3 rounded-xl border ${borderColor} ${isDead || allActionsUsed ? 'filter grayscale opacity-60' : 'bg-slate-900/60'}">
-                <div class="flex items-start justify-between">
-                    <div class="flex-grow pr-4">
-                        <div class="flex items-center gap-2">
-                            ${!isHero ? `<div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold" title="Armor Class">${monster.ac}</div>` : ''}
-                            <div data-action="select-unit" data-unit-id="${u.unitId}" class="font-medium text-sm cursor-pointer ${isDead ? 'line-through' : ''}">
-                                <span>${isHero ? `★ ${u.name}` : u.name}</span>
-                                <span class="opacity-60 text-xs flex items-center gap-1.5">${isHero ? u.label : `L${u.level} · ${u.org} · ${ROLE_ICONS[monster.role] || monster.role}`}</span>
-                            </div>
-                            <div class="flex gap-1">${conditionIcons}</div>
-                        </div>
-                        ${!isHero ? `<div class="h-2 rounded bg-slate-800 mt-1 mb-1 overflow-hidden"><div class="health-bar-inner h-2" style="width: ${pct}%; background-color: ${healthColor};"></div></div>` : '<div class="h-2"></div>'}
-                        <div class="flex items-center gap-2">
-                            <div class="text-xs opacity-80">
-                                ${!isHero ? `HP ${u.hp}/${u.hpMax} · FS ${u.freeStrike}` : ''}
-                                ${isBlooded ? `<span class="ml-2 text-rose-400 font-bold">Ensangrentado</span>` : ''}
-                                ${isDead ? `<span class="ml-2 text-red-500 font-bold">Muerto</span>` : ''}
-                            </div>
-                            ${!isHero ? `<button data-action="toggle-unit-card" data-unit-id="${u.unitId}" class="text-xs font-bold bg-slate-700 hover:bg-slate-600 rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">${isOpen ? '−' : '+'}</button>` : ''}
-                        </div>
-                    </div>
-                    <div class="flex-shrink-0">
-                        ${!isHero ? `
-                        <div class="flex items-center gap-2">
-                            <input type="number" placeholder="Valor" class="w-20 bg-slate-800 rounded-lg px-2 py-1 text-xs" data-hp-input="${u.unitId}">
-                            <button data-action="adjust-hp" data-unit-id="${u.unitId}" data-delta-sign="-1" class="px-2 py-1 bg-rose-800 hover:bg-rose-700 rounded-lg text-xs" ${isDead ? 'disabled' : ''}>Daño</button>
-                            <button data-action="adjust-hp" data-unit-id="${u.unitId}" data-delta-sign="1" class="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-xs">Sana</button>
-                        </div>` : ''}
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center gap-4 text-xs">
-                    <label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="move" ${u.actionsUsed.move ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Movimiento</label>
-                    <label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="attack1" ${u.actionsUsed.attack1 ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Ataque</label>
-                    ${!isHero && u.maxAttacks > 1 ? `<label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="attack2" ${u.actionsUsed.attack2 ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Ataque 2</label>`: ''}
-                    ${hasManeuver ? `<label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="maneuver" ${u.actionsUsed.maneuver ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Maniobra</label>` : ''}
-                    ${isHero ? `<label class="flex items-center gap-1.5"><input type="checkbox" data-action="toggle-action" data-unit-id="${u.unitId}" data-action-name="bonusAction" ${u.actionsUsed.bonusAction ? 'checked' : ''} ${isDead ? 'disabled' : ''}> Bonus Action</label>` : ''}
-                    <div class="relative">
-                        <button data-action="toggle-condition-dropdown" data-unit-id="${u.unitId}" class="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-md">Condiciones</button>
-                        ${state.conditionDropdownOpen === u.unitId ? renderConditionDropdown(u) : ''}
-                    </div>
-                </div>
-                ${isOpen && monster ? `
-                    <div class="mt-2 text-[11px]">
-                        <div class="border-b border-slate-800">
-                            ${tabButton('acciones', 'Acciones')}
-                            ${tabButton('rasgos', 'Rasgos')}
-                        </div>
-                        <div class="p-2 bg-slate-800 rounded-b-lg">
-                            ${activeTab === 'acciones' ? `<div class="space-y-2">${monster.abilities.map(a => renderAbilityBlock(a, true, u.unitId)).join('')}</div>` : ''}
-                            ${activeTab === 'rasgos' ? `<div class="space-y-2">${monster.traits.map(t => `<div><b>${t.name}.</b> ${t.text}</div>`).join('')}</div>` : ''}
-                        </div>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-    
-    function renderHeroModal() {
-        return `
-            <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md space-y-4">
-                    <h2 class="text-lg font-semibold">Agregar Héroes</h2>
-                    <div id="hero-inputs" class="grid grid-cols-2 gap-4">
-                        ${Array(8).fill(0).map((_, i) => `<input type="text" placeholder="Héroe ${i + 1}" class="bg-slate-800 rounded-lg px-3 py-2 text-sm w-full">`).join('')}
-                    </div>
-                    <div class="flex justify-end gap-4">
-                        <button data-action="close-hero-modal" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">Cerrar</button>
-                        <button data-action="add-heroes" class="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-600">Agregar</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    function renderConditionDropdown(u) {
-        return `
-            <div class="absolute z-10 top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-lg p-2 grid grid-cols-2 gap-2">
-                ${Object.keys(CONDITIONS_MAP).map(c => `
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer" title="${CONDITIONS_MAP[c]}">
-                        <input type="checkbox" data-action="toggle-condition" data-unit-id="${u.unitId}" data-cond="${c}" class="form-checkbox h-4 w-4 rounded bg-slate-800 border-slate-600 text-blue-500" ${u.conditions.includes(c) ? 'checked' : ''}>
-                        ${c.charAt(0).toUpperCase() + c.slice(1)}
-                    </label>
-                `).join('')}
-            </div>
-        `;
-    }
-
-    // --- EVENT LISTENERS & LOGIC ---
-    function addEventListeners() {
-        appContainer.addEventListener('click', handleAppClick);
-        appContainer.addEventListener('input', handleAppInput);
-        appContainer.addEventListener('change', handleAppChange);
-        modalContainer.addEventListener('click', handleAppClick);
-        
-        const initiativeList = document.getElementById('initiative-list');
-        if (initiativeList) {
-            initiativeList.addEventListener('dragstart', handleDragStart);
-            initiativeList.addEventListener('dragover', handleDragOver);
-            initiativeList.addEventListener('dragleave', handleDragLeave);
-            initiativeList.addEventListener('drop', handleDrop);
-            initiativeList.addEventListener('dragend', handleDragEnd);
-        }
-        
-        const libraryResizer = document.getElementById('library-resizer');
-        if (libraryResizer) libraryResizer.addEventListener('mousedown', initResize);
-        const initiativeResizer = document.getElementById('initiative-resizer');
-        if (initiativeResizer) initiativeResizer.addEventListener('mousedown', initResize);
-    }
-    
-    function handleAppClick(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) {
-             if (state.conditionDropdownOpen && !e.target.closest('.relative')) {
-                state.conditionDropdownOpen = null;
-                render();
-            }
-            return;
-        };
-
-        const nonClickActions = ['set-placed-count'];
-        if (nonClickActions.includes(target.dataset.action)) return;
-
-        const { action, monsterId, instanceId, unitId, idx, dir, deltaSign, cond, tabName, abilityId, lairActionId, race, sceneId } = target.dataset;
-        let stateChanged = true;
-
-        switch(action) {
-            case 'toggle-library': state.isLibraryOpen = !state.isLibraryOpen; break;
-            case 'toggle-initiative': state.isInitiativeOpen = !state.isInitiativeOpen; break;
-            case 'reset-filters': state.filters = { keywords: [], organizations: [], levels: [], q: '' }; break;
-            case 'toggle-monster-card': state.openMonsterCards[monsterId] = !state.openMonsterCards[monsterId]; break;
-            case 'toggle-race-group': state.collapsedRaceGroups = toggleInArray(state.collapsedRaceGroups, race); break;
-            case 'add-monster':
-                if (state.tracker) {
-                    handleAddReinforcement(monsterId);
-                } else {
-                    const monster = getMonsterById(monsterId);
-                    state.builder.push({ instanceId: `${monsterId}:${cryptoRandom()}`, monsterId, count: monster?.minion ? (monster.minionPerSquad || 4) : 1 });
-                }
-                break;
-            case 'remove-placed': state.builder = state.builder.filter(p => p.instanceId !== instanceId); break;
-            case 'start-encounter': handleStartEncounter(); break;
-            case 'reset-builder': state.builder = []; document.getElementById('scene-name-input').value = ''; break;
-            case 'end-encounter': state.tracker = null; state.selectedUnitId = null; break;
-            case 'advance-turn': handleAdvanceTurn(); break;
-            case 'move-initiative': handleMoveInitiative(parseInt(idx, 10), parseInt(dir, 10)); break;
-            case 'toggle-unit-card': state.openUnitCards[unitId] = !state.openUnitCards[unitId]; break;
-            case 'set-unit-tab': state.activeUnitTabs[unitId] = tabName; break;
-            case 'adjust-hp': handleAdjustHp(unitId, deltaSign); break;
-            case 'use-ability': handleUseAbility(unitId, abilityId); break;
-            case 'select-unit': state.selectedUnitId = state.selectedUnitId === unitId ? null : unitId; break;
-            case 'select-unit-from-initiative':
-                state.selectedUnitId = state.selectedUnitId === unitId ? null : unitId;
-                document.getElementById(`unit-${unitId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                break;
-            case 'open-hero-modal': state.isHeroModalOpen = true; break;
-            case 'close-hero-modal': state.isHeroModalOpen = false; break;
-            case 'add-heroes': handleAddHeroes(); break;
-            case 'toggle-condition-dropdown': 
-                state.conditionDropdownOpen = state.conditionDropdownOpen === unitId ? null : unitId;
-                break;
-            case 'toggle-condition': 
-                handleToggleCondition(unitId, cond);
-                break;
-            case 'use-lair-action':
-                const lairUnit = state.tracker.units.find(u => u.unitId === unitId);
-                if (lairUnit) {
-                    lairUnit.actionsUsed[lairActionId] = true;
-                    handleAdvanceTurn();
-                }
-                break;
-            case 'toggle-action':
-                handleToggleAction(unitId, target.dataset.actionName, target.checked);
-                break;
-            case 'toggle-filters':
-                state.isFiltersOpen = !state.isFiltersOpen;
-                break;
-            case 'save-scene': handleSaveScene(); break;
-            case 'activate-scene': handleActivateScene(sceneId); break;
-            case 'delete-scene': state.savedScenes = state.savedScenes.filter(s => s.id !== sceneId); break;
-            default: stateChanged = false; break;
-        }
-        
-        if (stateChanged) {
-            saveState();
-            render();
-        }
-    }
-
-    function handleAppInput(e) {
-        const target = e.target;
-        if (target.id === 'search-input') {
-            state.filters.q = target.value;
-            render();
-        } else if (target.dataset.partyField) {
-            state.party[target.dataset.partyField] = target.value;
-            saveState();
-        } else if (target.dataset.action === 'set-placed-count') {
-            const p = state.builder.find(p => p.instanceId === target.dataset.instanceId);
-            if (p) p.count = Math.max(1, parseInt(target.value, 10) || 1);
-            render();
-        } else if (target.id === 'notes-textarea') {
-            if(state.tracker) {
-                state.tracker.notes = target.value;
-                saveState();
-            }
-        }
-    }
-
-    function handleAppChange(e) {
-        const target = e.target;
-        if (target.dataset.filter) {
-            const filterType = target.dataset.filter;
-            const value = target.value;
-            if (target.checked) {
-                state.filters[filterType].push(value);
-            } else {
-                state.filters[filterType] = state.filters[filterType].filter(v => v !== value);
-            }
-            render();
-        } else if (target.dataset.action === 'toggle-action') {
-            handleToggleAction(target.dataset.unitId, target.dataset.actionName, target.checked);
-            saveState();
-        } else if (target.dataset.action === 'toggle-condition') {
-            handleToggleCondition(target.dataset.unitId, target.dataset.cond);
-            saveState();
-            render();
-        } else if (target.dataset.action === 'select-lair') {
-            state.selectedLairId = target.value === 'none' ? null : target.value;
-            saveState();
-        }
-    }
-    
-    // --- LOGIC FUNCTIONS ---
-    function handleStartEncounter(scene = null) {
-        const monsterList = scene ? scene.monsters : state.builder;
-        const lairId = scene ? scene.lairId : state.selectedLairId;
-        const units = [];
-        
-        monsterList.forEach(p => {
-            const m = getMonsterById(p.monsterId);
-            if (!m) return;
-            const maxAttacks = m.level >= 2 ? 2 : 1;
-            const baseUnit = { level: m.level, role: m.role, org: m.organization, freeStrike: m.freeStrike, monsterId: m.id, conditions: [], actionsUsed: { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false }, maxAttacks };
-            if (m.organization === "minion") {
-                units.push({ ...baseUnit, unitId: `${p.instanceId}-squad`, name: `${m.name}`, label: "Squad", hp: m.stamina * p.count, hpMax: m.stamina * p.count });
-            } else {
-                for (let i = 1; i <= p.count; i++) {
-                    units.push({ ...baseUnit, unitId: `${p.instanceId}-${i}`, name: `${m.name} #${i}`, label: "", hp: m.stamina, hpMax: m.stamina });
-                }
-            }
-        });
-        
-        const order = units.map(u => u.unitId);
-
-        if (lairId) {
-            const lair = getLairById(lairId);
-            const lairUnit = {
-                unitId: `lair-${cryptoRandom()}`,
-                name: lair.name,
-                label: "Acción de Guarida",
-                role: 'lair',
-                lairId: lair.id,
-                actionsUsed: {},
-                conditions: []
-            };
-            units.push(lairUnit);
-            const randomIndex = Math.floor(Math.random() * (order.length));
-            order.splice(randomIndex, 0, lairUnit.unitId);
-        }
-
-        state.tracker = {
-            started: true, round: 1, order, turnIndex: 0, units,
-            malice: units.filter(u => u.role !== 'hero' && u.role !== 'lair').length, 
-            log: [{ t: Date.now(), msg: `Encounter started.` }], notes: ""
-        };
-    }
-
-    function handleActivateScene(sceneId) {
-        const scene = state.savedScenes.find(s => s.id === sceneId);
-        if (scene) {
-            handleStartEncounter(scene);
-        }
-    }
-
-    function handleSaveScene() {
-        const nameInput = document.getElementById('scene-name-input');
-        const name = nameInput.value.trim();
-        if (!name || state.builder.length === 0) return;
-
-        const newScene = {
-            id: cryptoRandom(),
-            name,
-            monsters: JSON.parse(JSON.stringify(state.builder)),
-            lairId: state.selectedLairId
-        };
-
-        state.savedScenes.push(newScene);
-        state.builder = [];
-        nameInput.value = '';
-    }
-
-    function handleAdvanceTurn() {
-        if (!state.tracker) return;
-        const t = state.tracker;
-        t.turnIndex = (t.turnIndex + 1) % t.order.length;
-        if (t.turnIndex === 0) {
-            t.round++;
-            t.units.forEach(u => {
-                u.actionsUsed = { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false };
-                if (u.role === 'lair') u.actionsUsed = {};
-            });
-        }
-        const nextUnitId = t.order[t.turnIndex];
-        const nextUnit = t.units.find(u => u.unitId === nextUnitId);
-        if (nextUnit && nextUnit.role !== 'lair') {
-            nextUnit.actionsUsed = { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false };
-        }
-    }
-
-    function handleMoveInitiative(idx, dir) {
-        const { order } = state.tracker;
-        const j = idx + dir;
-        if (j < 0 || j >= order.length) return;
-        [order[idx], order[j]] = [order[j], order[idx]];
-    }
-
-    function handleAdjustHp(unitId, deltaSign) {
-        const input = document.querySelector(`[data-hp-input="${unitId}"]`);
-        const value = parseInt(input.value, 10);
-        if (isNaN(value) || value <= 0) return;
-        
-        const delta = value * parseInt(deltaSign, 10);
-        const unit = state.tracker.units.find(u => u.unitId === unitId);
-        const oldHp = unit.hp;
-        unit.hp = Math.max(0, unit.hp + delta);
-        if (oldHp > 0 && unit.hp === 0) {
-            state.tracker.malice++;
-        }
-        input.value = '';
-
-        const unitCard = document.getElementById(`unit-${unitId}`);
-        if (unitCard) {
-            const floatEl = document.createElement('div');
-            floatEl.textContent = `${delta > 0 ? '+' : ''}${delta}`;
-            floatEl.className = `damage-float ${delta > 0 ? 'text-emerald-400' : 'text-rose-500'}`;
-            unitCard.appendChild(floatEl);
-            setTimeout(() => floatEl.remove(), 1000);
-        }
-    }
-
-    function handleToggleAction(unitId, actionName, isChecked) {
-        const unit = state.tracker.units.find(u => u.unitId === unitId);
-        if (!unit) return;
-
-        unit.actionsUsed[actionName] = isChecked;
-
-        const monster = getMonsterById(unit.monsterId);
-        const isHero = unit.role === 'hero';
-        const hasManeuver = !isHero && monster?.abilities?.some(a => a.action === 'maneuver');
-        
-        let allActionsUsed = false;
-        if (isHero) {
-            allActionsUsed = unit.actionsUsed.move && unit.actionsUsed.attack1 && unit.actionsUsed.bonusAction;
-        } else {
-            const attacksDone = unit.maxAttacks === 1 ? unit.actionsUsed.attack1 : (unit.actionsUsed.attack1 && unit.actionsUsed.attack2);
-            allActionsUsed = unit.actionsUsed.move && attacksDone && (!hasManeuver || unit.actionsUsed.maneuver);
-        }
-
-        if (allActionsUsed) {
-            setTimeout(() => {
-                handleAdvanceTurn();
-                saveState();
-                render();
-            }, 300);
-        } else {
-            render();
-        }
-    }
-
-    function handleToggleCondition(unitId, cond) {
-        const unit = state.tracker.units.find(u => u.unitId === unitId);
-        if (unit) unit.conditions = toggleInArray(unit.conditions, cond);
-    }
-    
-    function handleUseAbility(unitId, abilityId) {
-        const unit = state.tracker.units.find(u => u.unitId === unitId);
-        if (!unit) return;
-        const monster = getMonsterById(unit.monsterId);
-        const ability = monster.abilities.find(a => a.id === abilityId);
-        if (!ability || (ability.malice && state.tracker.malice < ability.malice)) return;
-
-        if (ability.malice) state.tracker.malice -= ability.malice;
-        
-        if (ability.action === 'main') {
-            if (!unit.actionsUsed.attack1) unit.actionsUsed.attack1 = true;
-            else if (unit.maxAttacks > 1 && !unit.actionsUsed.attack2) unit.actionsUsed.attack2 = true;
-        }
-        if (ability.action === 'maneuver') unit.actionsUsed.maneuver = true;
-
-        const hasManeuver = monster?.abilities?.some(a => a.action === 'maneuver');
-        const attacksDone = unit.maxAttacks === 1 ? unit.actionsUsed.attack1 : (unit.actionsUsed.attack1 && unit.actionsUsed.attack2);
-        const allActionsUsed = unit.actionsUsed.move && attacksDone && (!hasManeuver || unit.actionsUsed.maneuver);
-
-        if (allActionsUsed) {
-             setTimeout(() => {
-                handleAdvanceTurn();
-                saveState();
-                render();
-            }, 300);
-        }
-    }
-    
-    function handleAddHeroes() {
-        const inputs = document.querySelectorAll('#hero-inputs input');
-        const names = Array.from(inputs).map(input => input.value.trim()).filter(name => name);
-        if (names.length === 0) {
-            state.isHeroModalOpen = false;
-            return;
-        }
-
-        const t = state.tracker;
-        if (!t) return;
-
-        names.forEach(name => {
-            const unitId = `hero-${cryptoRandom()}`;
-            const hero = {
-                unitId, name, label: "Héroe", level: "—", role: "hero", org: "hero",
-                monsterId: null, freeStrike: "—", hp: 0, hpMax: 0,
-                actionsUsed: { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false },
-                maxAttacks: 1,
-                conditions: []
-            };
-            t.units.push(hero);
-            t.order.push(unitId);
-        });
-        
-        state.isHeroModalOpen = false;
-    }
-    
-    function handleAddReinforcement(monsterId) {
-        const m = getMonsterById(monsterId);
-        if (!m || !state.tracker) return;
-        const maxAttacks = m.level >= 2 ? 2 : 1;
-        const baseUnit = { level: m.level, role: m.role, org: m.organization, freeStrike: m.freeStrike, monsterId: m.id, conditions: [], actionsUsed: { move: false, attack1: false, attack2: false, maneuver: false, bonusAction: false }, maxAttacks };
-        
-        if (m.organization === "minion") {
-            const unitId = `${m.id}:${cryptoRandom()}-squad`;
-            const newUnit = { ...baseUnit, unitId, name: `${m.name}`, label: "Squad", hp: m.stamina * m.minionPerSquad, hpMax: m.stamina * m.minionPerSquad };
-            state.tracker.units.push(newUnit);
-            state.tracker.order.push(unitId);
-        } else {
-            const unitId = `${m.id}:${cryptoRandom()}-1`;
-            const newUnit = { ...baseUnit, unitId, name: `${m.name} (Refuerzo)`, label: "", hp: m.stamina, hpMax: m.stamina };
-            state.tracker.units.push(newUnit);
-            state.tracker.order.push(unitId);
-        }
-    }
-
-    // --- DRAG & DROP LOGIC ---
-    let draggedUnitId = null;
-
-    function handleDragStart(e) {
-        draggedUnitId = e.target.dataset.unitId;
-        e.target.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function handleDragOver(e) {
-        e.preventDefault();
-        const target = e.target.closest('[draggable]');
-        if (target && target.dataset.unitId !== draggedUnitId) {
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-            target.classList.add('drag-over');
-        }
-    }
-    
-    function handleDragLeave(e) {
-        e.target.closest('[draggable]')?.classList.remove('drag-over');
-    }
-
-    function handleDrop(e) {
-        e.preventDefault();
-        const target = e.target.closest('[draggable]');
-        if (target && draggedUnitId) {
-            const targetUnitId = target.dataset.unitId;
-            const { order } = state.tracker;
-            const draggedIndex = order.indexOf(draggedUnitId);
-            const targetIndex = order.indexOf(targetUnitId);
-            
-            if (draggedIndex !== -1 && targetIndex !== -1) {
-                const [draggedItem] = order.splice(draggedIndex, 1);
-                order.splice(targetIndex, 0, draggedItem);
-                saveState();
-                render();
-            }
-        }
-        draggedUnitId = null;
-    }
-    
-    function handleDragEnd(e) {
-        document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-    }
-
-    // --- RESIZER LOGIC (completo) ---
-    let currentResizer = null;
-    let startX = 0;
-    let startWidth = 0;
-    let containerWidth = 0;
-
-    function initResize(e) {
-      currentResizer = e.target;
-      const panelId = currentResizer.dataset.panel; // "library" | "initiative"
-      const panelEl = document.getElementById(`${panelId}-container`);
-      const root = document.getElementById('app-container');
-
-      startX = e.clientX;
-      startWidth = panelEl.getBoundingClientRect().width;
-      containerWidth = root.getBoundingClientRect().width;
-
-      window.addEventListener('mousemove', resize);
-      window.addEventListener('mouseup', stopResize);
-    }
-
-    function resize(e) {
-      if (!currentResizer) return;
-      const panelId = currentResizer.dataset.panel;
-      const delta = e.clientX - startX;
-
-      // Si arrastras el separador de iniciativa, la lógica se invierte respecto al borde derecho
-      let newPx;
-      if (panelId === 'library') {
-        newPx = Math.max(160, startWidth + delta);
-      } else {
-        newPx = Math.max(160, startWidth - delta);
       }
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  // Unassigned scenes section
+  if(beat&&unassigned.length>0){
+    h+='<div class="section-label" style="margin-top:20px">ESCENAS SIN ASIGNAR</div><div class="scene-grid">';
+    unassigned.forEach(function(s){
+      h+='<div class="scene-card social" onclick="selectedSceneId=\''+s.id+'\';nav(\'scenes\')"><div class="scene-name">'+s.name+'</div><div class="scene-detail">'+((s.setup&&s.setup.hook)||'Sin hook')+'</div></div>';
+    });
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
 
-      // Limita a 15%–60% del ancho total para no colapsar el layout
-      let newPct = Math.round((newPx / containerWidth) * 100);
-      newPct = Math.max(15, Math.min(60, newPct));
+function addBeat(){
+  var camp=dbLoadSingle('campaign');
+  if(!camp)return;
+  var name=prompt('Nombre del beat:');
+  if(!name)return;
+  if(!camp.arcs)camp.arcs=[{id:'arc-1',name:'Arco I',beats:[]}];
+  camp.arcs[0].beats.push({id:'beat-'+uid(),name:name,order:camp.arcs[0].beats.length+1,scenes:[]});
+  dbSaveSingle('campaign',camp);
+  renderCampaign();
+}
 
-      state.panelWidths[panelId] = `${newPct}%`;
-      // Pintado inmediato sin esperar a mouseup
-      const target = document.getElementById(`${panelId}-container`);
-      if (target) target.style.width = state.panelWidths[panelId];
+/* ══════════════════════════════════════════════
+   RENDER: LIBRARY
+   ══════════════════════════════════════════════ */
+function renderLibrary(){
+  var el=document.getElementById('library-content');if(!el)return;
+  var tabs=[{id:'npcs',label:'NPCs'},{id:'villains',label:'Villanos'},{id:'bestiary',label:'Bestiario'},{id:'loot',label:'Loot'}];
+  var h='<div class="section-label">BIBLIOTECA</div>';
+  h+='<div class="lib-category-tabs">';
+  tabs.forEach(function(t){
+    var count=dbGetAll(t.id).length;
+    h+='<div class="lib-cat-tab'+(selectedLibTab===t.id?' active':'')+'" onclick="selectedLibTab=\''+t.id+'\';selectedLibItem=null;renderLibrary()">'+t.label+' <span class="tab-count">'+count+'</span></div>';
+  });
+  h+='</div>';
+  var items=dbGetAll(selectedLibTab);
+  var tableLabel={npcs:'NPC',villains:'Villano',bestiary:'Criatura',loot:'Item'}[selectedLibTab];
+  h+='<div style="margin-bottom:12px"><button class="btn btn-primary" onclick="openModal(\''+selectedLibTab+'\',null)">+ Nuevo '+tableLabel+'</button></div>';
+  h+='<div class="library-layout">';
+  // List
+  h+='<div class="library-list">';
+  h+='<div class="library-search"><input type="text" id="lib-search" placeholder="Buscar..." oninput="filterLibrary(this.value)"></div>';
+  h+='<div id="lib-list-items">';
+  h+=renderLibList(items);
+  h+='</div></div>';
+  // Detail
+  h+='<div class="library-detail" id="lib-detail">';
+  if(selectedLibItem){h+=renderLibDetail(selectedLibTab,selectedLibItem)}
+  else{h+='<div class="empty-state"><div class="empty-state-desc">Selecciona un item de la lista</div></div>'}
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+
+function renderLibList(items){
+  if(items.length===0)return'<div class="empty-state"><div class="empty-state-desc">Vacío</div></div>';
+  var h='';
+  items.forEach(function(item){
+    var sel=selectedLibItem===item.id?' selected':'';
+    h+='<div class="entity-list-item'+sel+'" onclick="selectedLibItem=\''+item.id+'\';renderLibrary()">';
+    h+='<div><div style="font-size:14px;font-weight:600">'+item.name+'</div>';
+    if(item.role)h+='<div style="font-size:12px;color:var(--ink3)">'+item.role+'</div>';
+    if(item.type)h+='<div style="font-size:12px;color:var(--ink3)">'+item.type+(item.difficulty?' · '+diffLabel(item.difficulty):'')+'</div>';
+    if(item.rarity)h+='<div style="font-size:12px;color:var(--ink3)">'+item.type+' · <span class="'+rarityClass(item.rarity)+'">'+item.rarity+'</span></div>';
+    h+='</div>';
+    h+='<button class="delete-btn" onclick="event.stopPropagation();if(confirm(\'¿Eliminar '+item.name+'?\')){dbDelete(\''+selectedLibTab+'\',\''+item.id+'\');selectedLibItem=null;renderLibrary()}" title="Eliminar">×</button>';
+    h+='</div>';
+  });
+  return h;
+}
+
+function renderLibDetail(table,id){
+  var item=dbGetById(table,id);
+  if(!item)return'<div class="empty-state">No encontrado</div>';
+  var h='<div style="display:flex;justify-content:space-between;align-items:start"><div class="detail-header"><div class="detail-name">'+item.name+'</div>';
+  if(item.role)h+='<div class="detail-role">'+item.role+'</div>';
+  if(item.type&&table==='bestiary')h+='<div class="detail-role">'+item.type+' · <span class="difficulty-tag diff-'+(item.difficulty||'medium')+'">'+diffLabel(item.difficulty)+'</span></div>';
+  if(item.rarity)h+='<div class="detail-role">'+item.type+' · <span class="loot-rarity '+rarityClass(item.rarity)+'">'+item.rarity+'</span></div>';
+  h+='</div><button class="btn" onclick="openModal(\''+table+'\',\''+item.id+'\')">Editar</button></div>';
+  // Fields based on table
+  var fields=[];
+  if(table==='npcs')fields=[['MOTIVACIÓN','motivation'],['LO QUE SABE','knows'],['LO QUE QUIERE','wants']];
+  if(table==='villains'){fields=[['MOTIVACIÓN','motivation'],['ARCO NARRATIVO','arc']];
+    if(item.stats)h+='<div class="detail-section"><div class="detail-section-label">STATS</div><div class="creature-stats-row"><span class="creature-stat hp">HP '+item.stats.hp+'</span><span class="creature-stat dmg">Daño '+item.stats.dmg+'</span>'+(item.stats.special?'<span class="creature-stat special">'+item.stats.special+'</span>':'')+'</div></div>';
+  }
+  if(table==='bestiary'){fields=[['DESCRIPCIÓN','description']];
+    if(item.hp)h+='<div class="detail-section"><div class="detail-section-label">STATS</div><div class="creature-stats-row"><span class="creature-stat hp">HP '+item.hp+'</span><span class="creature-stat dmg">Daño '+item.dmg+'</span>'+(item.resist?'<span class="creature-stat">Resist: '+item.resist+'</span>':'')+'</div></div>';
+    if(item.terrain)h+='<div class="detail-section"><div class="detail-section-label">TERRENO</div><div>'+item.terrain.join(' · ')+'</div></div>';
+  }
+  if(table==='loot'){fields=[['DESCRIPCIÓN','description'],['EFECTO','effect']]}
+  fields.forEach(function(f){
+    if(item[f[1]])h+='<div class="detail-section"><div class="detail-section-label">'+f[0]+'</div><div class="detail-section-value">'+item[f[1]]+'</div></div>';
+  });
+  if(item.voice)h+='<div class="detail-voice">"'+item.voice+'"</div>';
+  if(item.abilities&&item.abilities.length>0){
+    h+='<div class="detail-section"><div class="detail-section-label">HABILIDADES</div>';
+    item.abilities.forEach(function(a){h+='<div class="ability-line"><span class="ability-name">'+a.name+'</span> <span style="color:var(--ink4)">['+a.type+']</span><div style="font-size:13px;color:var(--ink3)">'+a.desc+'</div></div>'});
+    h+='</div>';
+  }
+  if(item.moves){
+    h+='<div class="detail-section"><div class="detail-section-label">MOVES ENTRE SESIONES</div>';
+    item.moves.forEach(function(m){h+='<div class="move-item"><input type="checkbox" '+(m.done?'checked':'')+' onchange="toggleMove(\''+item.id+'\',\''+m.text.replace(/'/g,"\\'")+'\')">'+'<span class="'+(m.done?'move-done':'')+'">'+m.text+'</span></div>'});
+    h+='</div>';
+  }
+  return h;
+}
+
+function toggleMove(villainId,moveText){
+  var v=dbGetById('villains',villainId);if(!v)return;
+  v.moves.forEach(function(m){if(m.text===moveText)m.done=!m.done});
+  dbUpdate('villains',villainId,{moves:v.moves});
+  renderLibrary();
+}
+
+function filterLibrary(q){
+  var items=dbGetAll(selectedLibTab);
+  if(q)items=items.filter(function(i){return i.name.toLowerCase().indexOf(q.toLowerCase())>-1});
+  document.getElementById('lib-list-items').innerHTML=renderLibList(items);
+}
+
+/* ══════════════════════════════════════════════
+   RENDER: PLAYERS
+   ══════════════════════════════════════════════ */
+function renderPlayers(){
+  var el=document.getElementById('players-content');if(!el)return;
+  var pls=dbGetAll('players');
+  if(pls.length===0){
+    el.innerHTML='<div class="empty-state"><div class="empty-state-title">No hay jugadores</div><div class="empty-state-desc">Agrega a los héroes de tu mesa.</div><button class="btn btn-primary" onclick="openModal(\'players\',null)">+ Agregar jugador</button></div>';
+    return;
+  }
+  var h='<div class="section-label">PERSONAJES JUGADORES</div><div style="margin-bottom:12px"><button class="btn btn-primary" onclick="openModal(\'players\',null)">+ Agregar jugador</button></div>';
+  h+='<div class="player-grid">';
+  pls.forEach(function(p){
+    var r=resolvePlayer(p);
+    h+='<div class="player-card" style="border-color:'+(r.factionColor||'var(--border)')+'">';
+    h+='<div class="player-card-header"><div class="player-avatar" style="background:'+r.bg+';color:'+r.fg+'">'+r.initial+'</div>';
+    h+='<div><div class="player-card-name">'+r.name+'</div><div class="player-card-class">'+r.cls+(r.sub?' · '+r.sub:'')+(r.kit?' · Kit '+r.kit:'')+' · Plano '+r.plano+'</div></div></div>';
+    h+='<div class="player-meta"><span class="player-tag faction">'+r.faction+'</span><span class="player-tag">HP '+r.hp+'</span><span class="player-tag">Aen +'+r.aenRegen+'/turno</span></div>';
+    if(r.backstory)h+='<div style="font-size:13px;color:var(--ink3);margin-top:8px;line-height:1.5">'+r.backstory+'</div>';
+    // Echo points
+    h+='<div class="echo-tracker"><div class="echo-tracker-label">ECHO</div><div class="echo-dots">';
+    for(var i=0;i<5;i++)h+='<div class="echo-dot'+(i<r.echo?' filled':'')+'">✦</div>';
+    h+='</div><button class="echo-btn" onclick="adjustEcho(\''+p.id+'\',1)" style="padding:4px 10px;font-size:12px;min-height:32px">+1</button></div>';
+    // Actions
+    h+='<div style="display:flex;gap:6px;margin-top:10px"><button class="btn" onclick="openModal(\'players\',\''+p.id+'\')">Editar</button><button class="delete-btn" onclick="if(confirm(\'¿Eliminar '+r.name+'?\')){dbDelete(\'players\',\''+p.id+'\');renderPlayers()}">×</button></div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function adjustEcho(pid,delta){
+  var p=dbGetById('players',pid);if(!p)return;
+  p.echo=Math.max(0,Math.min(5,(p.echo||0)+delta));
+  dbUpdate('players',pid,{echo:p.echo});
+  renderPlayers();
+}
+
+/* ══════════════════════════════════════════════
+   RENDER: SCENE BUILDER
+   ══════════════════════════════════════════════ */
+function renderSceneBuilder(sceneId){
+  var el=document.getElementById('scenes-content');if(!el)return;
+  if(!sceneId){
+    el.innerHTML='<div class="empty-state"><div class="empty-state-title">Scene Builder</div><div class="empty-state-desc">Selecciona una escena desde Campaña o crea una nueva.</div><button class="btn btn-primary" onclick="openModal(\'scene\',null)">+ Nueva escena</button></div>';
+    return;
+  }
+  var s=dbGetById('scenes',sceneId);
+  if(!s){el.innerHTML='<div class="empty-state">Escena no encontrada</div>';return}
+  var setup=s.setup||{};
+  var h='<div class="section-label">SCENE BUILDER</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div class="detail-name">'+s.name+'</div>';
+  h+='<div style="display:flex;gap:8px"><span class="scene-badge '+(s.type==='combat'?'badge-combat':'badge-social')+'">'+(s.type==='combat'?'Combate':'Narrativa')+'</span>';
+  h+='<button class="btn" onclick="openModal(\'scene\',\''+s.id+'\')">Editar</button>';
+  h+='<button class="btn" style="color:var(--red);border-color:var(--red)" onclick="if(confirm(\'¿Eliminar esta escena?\')){dbDelete(\'scenes\',\''+s.id+'\');selectedSceneId=null;nav(\'campaign\')}">Eliminar</button></div></div>';
+  // Setup display
+  var fields=[['HOOK',setup.hook],['CONFLICTO',setup.conflict],['BEAT DE SALIDA',setup.exit]];
+  fields.forEach(function(f){if(f[1])h+='<div class="form-section"><div class="form-label">'+f[0]+'</div><div style="font-size:14px;color:var(--ink2);line-height:1.6">'+f[1]+'</div></div>'});
+  if(setup.stakesFail||setup.stakesWin){
+    h+='<div class="form-section"><div class="form-label">STAKES</div><div class="stakes-row">';
+    h+='<div class="stake-box stake-fail"><div class="stake-label">SI FALLAN</div><div style="font-size:14px">'+(setup.stakesFail||'—')+'</div></div>';
+    h+='<div class="stake-box stake-win"><div class="stake-label">SI TRIUNFAN</div><div style="font-size:14px">'+(setup.stakesWin||'—')+'</div></div></div></div>';
+  }
+  // Participants
+  if(s.participants){
+    var npcs=(s.participants.npcIds||[]).map(function(id){return dbGetById('npcs',id)}).filter(Boolean);
+    if(npcs.length>0){
+      h+='<div class="form-section"><div class="form-label">NPCs</div>';
+      npcs.forEach(function(n){h+='<div class="npc-card"><div class="npc-name">'+n.name+'</div><div class="npc-role">'+(n.role||'')+'</div>'+(n.voice?'<div class="npc-voice">"'+n.voice+'"</div>':'')+'</div>'});
+      h+='</div>';
     }
-
-    function stopResize() {
-      window.removeEventListener('mousemove', resize);
-      window.removeEventListener('mouseup', stopResize);
-      currentResizer = null;
-      saveState();
+    var creatures=(s.participants.creatureIds||[]);
+    if(creatures.length>0){
+      h+='<div class="form-section"><div class="form-label">CRIATURAS</div>';
+      creatures.forEach(function(ci){
+        var c=dbGetById('bestiary',ci.creatureId);
+        if(c)h+='<div class="creature-card"><div style="display:flex;justify-content:space-between"><div><span class="creature-name">'+c.name+'</span><span style="color:var(--ink3)"> ×'+ci.qty+'</span></div><span class="difficulty-tag diff-'+(c.difficulty||'medium')+'">'+diffLabel(c.difficulty)+'</span></div><div class="creature-stats-row"><span class="creature-stat hp">HP '+c.hp+'</span><span class="creature-stat dmg">'+c.dmg+'</span></div></div>';
+      });
+      h+='</div>';
     }
+  }
+  // Lair actions
+  if(s.lairActions&&s.lairActions.length>0){
+    h+='<div class="form-section"><div class="form-label">LAIR ACTIONS</div><div class="lair-section">';
+    s.lairActions.forEach(function(la){h+='<div style="padding:6px 0;font-size:14px">· '+la+'</div>'});
+    h+='</div></div>';
+  }
+  // Combat start button
+  if(s.type==='combat')h+='<button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px;padding:16px" onclick="startCombatFromScene(\''+s.id+'\')">Iniciar combate</button>';
+  // Debrief section
+  h+='<div style="margin-top:24px;padding:16px;background:var(--surface);border:2px solid var(--border);border-radius:var(--r-lg)">';
+  h+='<div class="form-label">DEBRIEF</div>';
+  if(s.debrief){
+    if(s.debrief.whatHappened)h+='<div style="font-size:14px;color:var(--ink2);margin-bottom:12px;line-height:1.6">'+s.debrief.whatHappened+'</div>';
+    if(s.debrief.consequences)s.debrief.consequences.forEach(function(c){h+='<div class="scene-flag flag-consequence" style="margin-bottom:6px">⚠ '+c+'</div>'});
+  }
+  h+='<textarea class="form-input" id="debrief-text" placeholder="¿Qué pasó realmente?">'+(s.debrief&&s.debrief.whatHappened?s.debrief.whatHappened:'')+'</textarea>';
+  h+='<textarea class="form-input" id="debrief-consequences" style="margin-top:8px" placeholder="Consecuencias (una por línea)">'+(s.debrief&&s.debrief.consequences?s.debrief.consequences.join('\n'):'')+'</textarea>';
+  h+='<button class="btn btn-primary" style="margin-top:10px" onclick="saveDebrief(\''+s.id+'\')">Guardar debrief</button>';
+  h+='</div>';
+  el.innerHTML=h;
+}
 
-    // --- BOOTSTRAP ---
-    window.addEventListener('DOMContentLoaded', () => {
-      try {
-        initState();
-        render();
-      } catch (err) {
-        console.error('[Encounter Toolkit] fallo en bootstrap:', err);
-        const root = document.getElementById('app-container');
-        if (root) {
-          root.innerHTML = `<div style="padding:16px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:12px;">
-            <div style="font-weight:600;margin-bottom:8px;">Error inicializando la app</div>
-            <pre style="white-space:pre-wrap;font-size:12px;opacity:.8;">${String(err)}</pre>
-          </div>`;
-        }
+function saveDebrief(sceneId){
+  var text=document.getElementById('debrief-text').value;
+  var cons=document.getElementById('debrief-consequences').value.split('\n').filter(function(c){return c.trim()});
+  dbUpdate('scenes',sceneId,{debrief:{whatHappened:text,consequences:cons},status:'debriefed'});
+  renderSceneBuilder(sceneId);
+}
+
+/* ══════════════════════════════════════════════
+   COMBAT TRACKER
+   ══════════════════════════════════════════════ */
+function startCombatFromScene(sceneId){
+  var scene=dbGetById('scenes',sceneId);if(!scene)return;
+  var units=[];expandedUnits={};
+  var pls=dbGetAll('players');
+  pls.forEach(function(p){
+    var r=resolvePlayer(p);
+    units.push({id:p.id,name:r.name,type:'player',initial:r.initial,bg:r.bg,fg:r.fg,cls:r.cls,plano:r.plano,abilities:r.abilities,hp:0,hpMax:0,actions:{mov:false,act1:false,act2:false},conditions:[]});
+  });
+  if(scene.participants&&scene.participants.creatureIds){
+    scene.participants.creatureIds.forEach(function(ci){
+      var c=dbGetById('bestiary',ci.creatureId);if(!c)return;
+      for(var i=1;i<=ci.qty;i++){
+        units.push({id:c.id+'-'+i,name:c.name+(ci.qty>1?' #'+i:''),type:'creature',hp:c.hp,hpMax:c.hp,dmg:c.dmg||'',resist:c.resist||'',diff:c.difficulty||'medium',abilities:c.abilities||[],actions:{mov:false,act1:false,act2:false},conditions:[]});
       }
     });
-    </script>
+  }
+  combat={name:scene.name,sceneId:sceneId,round:1,turnIndex:0,units:units,order:units.map(function(u){return u.id}),lairActions:(scene.lairActions||[]).map(function(la,i){return{id:'la'+i,text:la,used:false}}),log:[]};
+  nav('session');
+}
+
+function endCombat(){combat=null;expandedUnits={};renderSession()}
+function nextTurn(){
+  if(!combat)return;
+  combat.turnIndex=(combat.turnIndex+1)%combat.order.length;
+  if(combat.turnIndex===0){combat.round++;combat.units.forEach(function(u){u.actions={mov:false,act1:false,act2:false}});combat.lairActions.forEach(function(la){la.used=false})}
+  var nx=combat.units.find(function(u){return u.id===combat.order[combat.turnIndex]});
+  if(nx)nx.actions={mov:false,act1:false,act2:false};
+  renderSession();
+}
+function adjustHp(uid,delta){var u=combat.units.find(function(u){return u.id===uid});if(u)u.hp=Math.max(0,Math.min(u.hpMax,u.hp+delta));renderSession()}
+function toggleAction(uid,act){var u=combat.units.find(function(u){return u.id===uid});if(!u)return;u.actions[act]=!u.actions[act];if(u.actions.mov&&u.actions.act1&&u.actions.act2)setTimeout(function(){nextTurn()},400);else renderSession()}
+function toggleExpand(uid){expandedUnits[uid]=!expandedUnits[uid];renderSession()}
+function useLairAction(lid){var la=combat.lairActions.find(function(l){return l.id===lid});if(la)la.used=true;renderSession()}
+function addEchoTracker(pid){var p=dbGetById('players',pid);if(p&&(p.echo||0)<5){p.echo=(p.echo||0)+1;dbUpdate('players',pid,{echo:p.echo})}renderSession()}
+
+function renderSession(){
+  var el=document.getElementById('session-content');if(!el)return;
+  if(!combat){
+    el.innerHTML='<div class="empty-state"><div class="empty-state-title">No hay combate activo</div><div class="empty-state-desc">Inicia un combate desde una escena de tipo Combate en la vista de Campaña.</div></div>';
+    return;
+  }
+  var h='';
+  h+='<div class="tracker-bar"><div style="font-size:17px;font-weight:700;font-family:var(--serif);flex:1">'+combat.name+'</div>';
+  h+='<div class="tracker-stat"><div class="tracker-stat-label">RONDA</div><div class="tracker-stat-value">'+combat.round+'</div></div>';
+  h+='<div class="tracker-stat"><div class="tracker-stat-label">TURNO</div><div class="tracker-stat-value">'+(combat.turnIndex+1)+'/'+combat.order.length+'</div></div>';
+  h+='<button class="btn btn-primary" onclick="nextTurn()">Siguiente →</button>';
+  h+='<button class="btn" onclick="endCombat()">Terminar</button></div>';
+  // Initiative
+  h+='<div class="initiative-bar" id="init-bar">';
+  combat.order.forEach(function(id,idx){
+    var u=combat.units.find(function(x){return x.id===id});
+    var cls='init-chip';
+    if(idx===combat.turnIndex)cls+=' active';
+    if(idx<combat.turnIndex)cls+=' done';
+    if(u.type==='creature'&&u.hp<=0)cls+=' dead';
+    if(u.type==='player')cls+=' player';
+    if(u.type==='player'&&idx>combat.turnIndex)cls+=' sinergia-eligible';
+    var lbl=u.type==='player'?u.initial:u.name.substring(0,8);
+    h+='<div class="'+cls+'" onclick="toggleExpand(\''+u.id+'\')" title="'+u.name+'">'+lbl+'</div>';
+  });
+  h+='</div>';
+  // Sinergia
+  var sp=[];combat.order.forEach(function(id,idx){var u=combat.units.find(function(x){return x.id===id});if(u.type==='player'&&idx>combat.turnIndex)sp.push(u.name)});
+  if(sp.length>0)h+='<div style="font-size:13px;color:var(--gold);margin-bottom:12px;padding:8px 14px;background:var(--gold-pale);border-radius:var(--r)">Sinergia: <strong>'+sp.join(', ')+'</strong></div>';
+  // Units
+  combat.order.forEach(function(id,idx){
+    var u=combat.units.find(function(x){return x.id===id});
+    var isAct=idx===combat.turnIndex;var isDead=u.type==='creature'&&u.hp<=0;var isExp=expandedUnits[u.id];
+    h+='<div class="unit-card-tracker'+(isAct?' active-unit':'')+(isDead?' dead-unit':'')+'">';
+    h+='<div class="unit-header"><div style="cursor:pointer;flex:1" onclick="toggleExpand(\''+u.id+'\')">';
+    if(u.type==='player'){h+='<div style="display:flex;align-items:center;gap:10px"><div class="sb-player" style="background:'+u.bg+';color:'+u.fg+'">'+u.initial+'</div><div><div class="unit-name">'+u.name+' <span style="font-size:12px;color:var(--ink4)">'+(isExp?'▲':'▼')+'</span></div><div class="unit-meta">'+u.cls+' · Plano '+u.plano+'</div></div></div>'}
+    else{h+='<div><div class="unit-name">'+u.name+' <span style="font-size:12px;color:var(--ink4)">'+(isExp?'▲':'▼')+'</span></div><div class="unit-meta">Daño '+u.dmg+(u.resist?' · Resist: '+u.resist:'')+' <span class="difficulty-tag diff-'+u.diff+'">'+diffLabel(u.diff)+'</span></div></div>'}
+    h+='</div>';
+    if(u.type==='creature'){h+='<div class="hp-controls"><input type="number" id="hp-'+u.id+'" placeholder="0" min="1"><button class="btn btn-damage" onclick="event.stopPropagation();var v=parseInt(document.getElementById(\'hp-'+u.id+'\').value)||0;adjustHp(\''+u.id+'\',-v);document.getElementById(\'hp-'+u.id+'\').value=\'\'">Daño</button><button class="btn btn-heal" onclick="event.stopPropagation();var v=parseInt(document.getElementById(\'hp-'+u.id+'\').value)||0;adjustHp(\''+u.id+'\',v);document.getElementById(\'hp-'+u.id+'\').value=\'\'">Sana</button></div>'}
+    h+='</div>';
+    if(u.type==='creature'){var pct=Math.round((u.hp/u.hpMax)*100);h+='<div class="hp-section"><div class="hp-display" style="color:'+getHpColor(pct)+'">'+u.hp+'<span style="font-size:13px;color:var(--ink4)">/'+u.hpMax+'</span></div><div class="hp-bar"><div class="hp-fill" style="width:'+pct+'%;background:'+getHpColor(pct)+'"></div></div></div>'}
+    h+='<div class="actions-row"><label class="action-check"><input type="checkbox" '+(u.actions.mov?'checked':'')+' onchange="toggleAction(\''+u.id+'\',\'mov\')"> Mov</label><label class="action-check"><input type="checkbox" '+(u.actions.act1?'checked':'')+' onchange="toggleAction(\''+u.id+'\',\'act1\')"> Acción 1</label><label class="action-check"><input type="checkbox" '+(u.actions.act2?'checked':'')+' onchange="toggleAction(\''+u.id+'\',\'act2\')"> Acción 2</label></div>';
+    if(isExp&&u.abilities&&u.abilities.length>0){h+='<div class="abilities-compact"><div class="form-label" style="margin-bottom:6px">HABILIDADES</div>';u.abilities.forEach(function(a){h+='<div class="ability-line"><span class="ability-name">'+a.name+'</span> <span style="color:var(--ink4)">['+a.type+']</span>'+(a.cost?' <span style="color:var(--gold)">'+a.cost+'</span>':'')+'<div style="font-size:12px;color:var(--ink3)">'+a.desc+'</div></div>'});h+='</div>'}
+    h+='</div>';
+  });
+  // Lair
+  if(combat.lairActions.length>0){h+='<div class="lair-panel"><div class="form-label" style="color:var(--orange)">LAIR ACTIONS — Ronda '+combat.round+'</div>';combat.lairActions.forEach(function(la){h+='<div class="lair-action-btn'+(la.used?' used':'')+'" onclick="useLairAction(\''+la.id+'\')"><input type="checkbox" style="width:20px;height:20px;pointer-events:none" '+(la.used?'checked':'')+'> '+la.text+'</div>'});h+='</div>'}
+  // Echo
+  h+='<div class="echo-panel"><div class="form-label" style="color:var(--gold)">ECHO POINTS</div>';
+  dbGetAll('players').forEach(function(p){h+='<div class="echo-row"><div style="display:flex;align-items:center;gap:10px"><div class="sb-player" style="background:'+(p.bg||'#444')+';color:'+(p.fg||'#fff')+'">'+(p.initial||p.name.charAt(0))+'</div><div class="echo-player-name">'+p.name+'</div></div><div style="display:flex;align-items:center;gap:8px"><div class="echo-count">'+(p.echo||0)+'</div><button class="echo-btn" onclick="addEchoTracker(\''+p.id+'\')">+1</button></div></div>'});
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+/* ══════════════════════════════════════════════
+   RENDER: SETTINGS
+   ══════════════════════════════════════════════ */
+function renderSettings(){
+  var el=document.getElementById('settings-content');if(!el)return;
+  var h='<div class="section-label">CONFIGURACIÓN</div>';
+  // Gamedata info
+  h+='<div style="background:var(--surface);border:2px solid var(--border);border-radius:var(--r-lg);padding:18px;margin-bottom:16px"><div class="form-label">GAME DATA</div><div style="font-size:14px;color:var(--ink2);line-height:1.8">';
+  if(typeof GAMEDATA!=='undefined'){h+='Clases: '+GAMEDATA.classes.length+' ('+GAMEDATA.classes.reduce(function(a,c){return a+c.subclasses.length},0)+' subclases)<br>Facciones: '+GAMEDATA.factions.length+'<br>Kits: '+GAMEDATA.kits.length+'<br>Condiciones: '+GAMEDATA.conditions.length}
+  else{h+='⚠ gamedata.js no encontrado'}
+  h+='<br><br>';
+  DB_TABLES.forEach(function(t){var d=dbLoad(t);var c=Array.isArray(d)?d.length:(d?1:0);h+=t+': '+c+'<br>'});
+  h+='</div></div>';
+  // Export
+  h+='<div style="background:var(--surface);border:2px solid var(--border);border-radius:var(--r-lg);padding:18px;margin-bottom:16px"><div class="form-label">EXPORTAR</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';
+  DB_TABLES.forEach(function(t){h+='<button class="btn" onclick="exportDB(\''+t+'\')">'+t+'</button>'});
+  h+='<button class="btn btn-primary" onclick="exportAll()">Todo</button></div></div>';
+  // Import
+  h+='<div style="background:var(--surface);border:2px solid var(--border);border-radius:var(--r-lg);padding:18px;margin-bottom:16px"><div class="form-label">IMPORTAR</div><input type="file" accept=".json" style="font-size:14px;margin-top:8px" onchange="importFile(this)"><div id="import-status" style="margin-top:8px;font-size:13px"></div></div>';
+  // Reset
+  h+='<div style="background:var(--surface);border:2px solid var(--red);border-radius:var(--r-lg);padding:18px"><div class="form-label" style="color:var(--red)">ZONA DE PELIGRO</div><button class="btn" style="border-color:var(--red);color:var(--red);margin-top:8px" onclick="if(confirm(\'¿Borrar TODO?\')){DB_TABLES.forEach(function(t){localStorage.removeItem(dbKey(t))});localStorage.removeItem(dbKey(\'_initialized\'));location.reload()}">Resetear datos</button></div>';
+  el.innerHTML=h;
+}
+
+function exportDB(t){var d=dbLoad(t);if(!d){alert('Sin datos');return}var b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='eq_'+t+'.json';a.click()}
+function exportAll(){var all={};DB_TABLES.forEach(function(t){all[t]=dbLoad(t)});var b=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='eq_backup_'+new Date().toISOString().split('T')[0]+'.json';a.click()}
+function importFile(input){var f=input.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){try{var d=JSON.parse(e.target.result);if(d.campaign||d.npcs||d.scenes){DB_TABLES.forEach(function(t){if(d[t])dbSave(t,d[t])});document.getElementById('import-status').innerHTML='✅ Importado'}else if(Array.isArray(d)){var n=f.name.replace('eq_','').replace('.json','');if(DB_TABLES.includes(n)){dbSave(n,d);document.getElementById('import-status').innerHTML='✅ '+n+' importado'}}}catch(err){document.getElementById('import-status').innerHTML='❌ Error: '+err.message}input.value=''};r.readAsText(f)}
+
+/* ══════════════════════════════════════════════
+   MODALS — Create/Edit forms
+   ══════════════════════════════════════════════ */
+function openModal(type,id){
+  var item=null;
+  var table=type;
+  if(id)item=dbGetById(table,id);
+  var title=(id?'Editar':'Crear')+' '+{npcs:'NPC',villains:'Villano',bestiary:'Criatura',loot:'Item',players:'Jugador',scene:'Escena',campaign:'Campaña'}[type];
+  var fields=getFormFields(type,item);
+  var h='<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-title">'+title+'</div>';
+  h+=fields;
+  h+='<div class="modal-actions"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveModal(\''+type+'\','+(id?'\''+id+'\'':'null')+')">Guardar</button></div></div></div>';
+  document.getElementById('modal-root').innerHTML=h;
+}
+
+function closeModal(){document.getElementById('modal-root').innerHTML=''}
+
+function getFormFields(type,item){
+  var v=item||{};var h='';
+  function field(label,name,val,placeholder,textarea){
+    h+='<div class="form-section"><div class="form-label">'+label+'</div>';
+    if(textarea)h+='<textarea class="form-input" id="f-'+name+'" placeholder="'+(placeholder||'')+'">'+(val||'')+'</textarea>';
+    else h+='<input class="form-input" id="f-'+name+'" type="text" value="'+(val||'').replace(/"/g,'&quot;')+'" placeholder="'+(placeholder||'')+'">';
+    h+='</div>';
+  }
+  function select(label,name,options,val){
+    h+='<div class="form-section"><div class="form-label">'+label+'</div><select class="form-input" id="f-'+name+'">';
+    options.forEach(function(o){h+='<option value="'+o.value+'" '+(val===o.value?'selected':'')+'>'+o.label+'</option>'});
+    h+='</select></div>';
+  }
+
+  if(type==='campaign'){
+    field('Nombre','name',v.name,'Nombre de la campaña');
+  }
+  if(type==='scene'){
+    field('Nombre','name',v.name,'Nombre de la escena');
+    select('Tipo','type',[{value:'combat',label:'Combate'},{value:'narrative',label:'Narrativa'}],v.type||'narrative');
+    field('Hook','hook',v.setup?v.setup.hook:'','¿Cómo abre la escena?',true);
+    field('Conflicto','conflict',v.setup?v.setup.conflict:'','¿Qué hay que resolver?',true);
+    field('Si fallan','stakesFail',v.setup?v.setup.stakesFail:'','¿Qué pierden?');
+    field('Si triunfan','stakesWin',v.setup?v.setup.stakesWin:'','¿Qué ganan?');
+    field('Beat de salida','exit',v.setup?v.setup.exit:'','¿Cómo conecta con lo siguiente?',true);
+    field('Lair Actions (una por línea)','lairActions',(v.lairActions||[]).join('\n'),'',true);
+    field('Notas DM','notes',v.notes,'Recordatorios, música...',true);
+  }
+  if(type==='npcs'){
+    field('Nombre','name',v.name,'Nombre del NPC');
+    field('Rol','role',v.role,'Ej: Comerciante, Autoridad, Espía');
+    field('Raza','race',v.race,'Ej: Humano, Elfo, Goblin');
+    field('Motivación','motivation',v.motivation,'¿Qué lo mueve?',true);
+    field('Lo que sabe','knows',v.knows,'Información que puede revelar',true);
+    field('Lo que quiere','wants',v.wants,'¿Qué busca?',true);
+    field('Voz','voice',v.voice,'Una frase ejemplo de cómo habla');
+  }
+  if(type==='villains'){
+    field('Nombre','name',v.name,'Nombre del villano');
+    field('Rol','role',v.role,'Ej: Líder, Agente, Mercenario');
+    select('Estado','status',[{value:'prepared',label:'Preparado'},{value:'active',label:'Activo'}],v.status||'prepared');
+    field('Motivación','motivation',v.motivation,'',true);
+    field('Arco narrativo','arc',v.arc,'Fases del plan del villano',true);
+    field('HP','hp',v.stats?v.stats.hp:'','');
+    field('Daño','dmg',v.stats?v.stats.dmg:'','Ej: 8-14');
+    field('Especial','special',v.stats?v.stats.special:'','Habilidad especial');
+    field('Resistencia','resist',v.stats?v.stats.resist:'','');
+  }
+  if(type==='bestiary'){
+    field('Nombre','name',v.name,'');
+    var G=typeof GAMEDATA!=='undefined'?GAMEDATA:null;
+    if(G)select('Tipo','btype',G.creatureTypes.map(function(t){return{value:t,label:t}}),v.type||'Bestia');
+    else field('Tipo','btype',v.type,'Bestia, No-muerto, etc.');
+    if(G)select('Dificultad','difficulty',G.difficulties.map(function(d){return{value:d.id,label:d.name}}),v.difficulty||'medium');
+    else field('Dificultad','difficulty',v.difficulty,'easy/medium/hard/boss');
+    field('HP','hp',v.hp,'');
+    field('Daño','dmg',v.dmg,'Ej: 4-8');
+    field('Resistencia','resist',v.resist,'');
+    field('Terreno (separado por comas)','terrain',(v.terrain||[]).join(', '),'Bosque, Cueva, Ruinas');
+    field('Descripción narrativa','description',v.description,'Cómo se ve, suena, huele',true);
+    field('Lair Actions sugeridas (una por línea)','lairSugg',(v.lairSuggestions||[]).join('\n'),'',true);
+  }
+  if(type==='loot'){
+    field('Nombre','name',v.name,'');
+    select('Tipo','ltype',[{value:'Arma',label:'Arma'},{value:'Narrativo',label:'Narrativo'},{value:'Información',label:'Información'},{value:'Consumible',label:'Consumible'}],v.type||'Consumible');
+    var G=typeof GAMEDATA!=='undefined'?GAMEDATA:null;
+    if(G)select('Rareza','rarity',G.rarities.map(function(r){return{value:r.id,label:r.name}}),v.rarity||'common');
+    field('Descripción','description',v.description,'',true);
+    field('Efecto mecánico','effect',v.effect,'',true);
+  }
+  if(type==='players'){
+    field('Nombre','name',v.name,'');
+    field('Inicial','initial',v.initial||'','Una letra');
+    field('Color fondo','bg',v.bg||'#444','Hex color');
+    field('Color texto','fg',v.fg||'#fff','Hex color');
+    var G=typeof GAMEDATA!=='undefined'?GAMEDATA:null;
+    if(G){
+      select('Facción','factionId',G.factions.map(function(f){return{value:f.id,label:f.name}}),v.factionId||'');
+      select('Clase','classId',G.classes.map(function(c){return{value:c.id,label:c.nameEs+' ('+c.type+')'}}),v.classId||'');
+      // Subclass - will show all, ideally filtered by class
+      var allSubs=[];G.classes.forEach(function(c){c.subclasses.forEach(function(s){allSubs.push({value:s.id,label:c.nameEs+' → '+s.name})})});
+      select('Subclase','subclassId',allSubs,v.subclassId||'');
+      select('Kit','kitId',G.kits.map(function(k){return{value:k.id,label:k.name+' ('+k.fantasy+')'}}),v.kitId||'');
+    }
+    field('Plano','plano',v.plano||1,'1-4');
+    field('Backstory','backstory',v.backstory||'','Historia del personaje',true);
+  }
+  return h;
+}
+
+function saveModal(type,id){
+  function gv(name){var el=document.getElementById('f-'+name);return el?el.value.trim():''}
+  var item={};
+  if(type==='campaign'){
+    item={id:id||'camp-'+uid(),name:gv('name'),arcs:[{id:'arc-1',name:'Arco I',beats:[]}]};
+    dbSaveSingle('campaign',item);closeModal();nav('campaign');return;
+  }
+  if(type==='scene'){
+    item={name:gv('name'),type:gv('type'),status:'ready',sporadic:false,
+      setup:{hook:gv('hook'),conflict:gv('conflict'),stakesFail:gv('stakesFail'),stakesWin:gv('stakesWin'),exit:gv('exit')},
+      participants:{npcIds:[],creatureIds:[]},
+      lairActions:gv('lairActions').split('\n').filter(function(l){return l.trim()}),
+      objectives:{session:'',scene:[],personal:{}},notes:gv('notes'),debrief:null};
+    if(id){dbUpdate('scenes',id,item)}else{item.id='scene-'+uid();dbCreate('scenes',item);selectedSceneId=item.id}
+    closeModal();nav('scenes');return;
+  }
+  if(type==='npcs'){
+    item={name:gv('name'),role:gv('role'),race:gv('race'),motivation:gv('motivation'),knows:gv('knows'),wants:gv('wants'),voice:gv('voice'),appearsIn:[],tags:[]};
+    if(id)dbUpdate('npcs',id,item);else dbCreate('npcs',item);
+  }
+  if(type==='villains'){
+    item={name:gv('name'),role:gv('role'),status:gv('status'),motivation:gv('motivation'),arc:gv('arc'),
+      stats:{hp:parseInt(gv('hp'))||0,dmg:gv('dmg'),special:gv('special'),resist:gv('resist')},abilities:[],moves:[],appearsIn:[]};
+    if(id)dbUpdate('villains',id,item);else dbCreate('villains',item);
+  }
+  if(type==='bestiary'){
+    item={name:gv('name'),type:gv('btype'),difficulty:gv('difficulty'),hp:parseInt(gv('hp'))||10,dmg:gv('dmg'),resist:gv('resist'),
+      terrain:gv('terrain').split(',').map(function(t){return t.trim()}).filter(Boolean),
+      description:gv('description'),abilities:[],
+      lairSuggestions:gv('lairSugg').split('\n').filter(function(l){return l.trim()}),appearsIn:[]};
+    if(id)dbUpdate('bestiary',id,item);else dbCreate('bestiary',item);
+  }
+  if(type==='loot'){
+    item={name:gv('name'),type:gv('ltype'),rarity:gv('rarity'),description:gv('description'),effect:gv('effect'),delivered:false,intendedFor:null,plannedScene:null};
+    if(id)dbUpdate('loot',id,item);else dbCreate('loot',item);
+  }
+  if(type==='players'){
+    item={name:gv('name'),initial:gv('initial')||gv('name').charAt(0),bg:gv('bg'),fg:gv('fg'),
+      factionId:gv('factionId'),classId:gv('classId'),subclassId:gv('subclassId'),kitId:gv('kitId'),
+      plano:parseInt(gv('plano'))||1,backstory:gv('backstory'),echo:0};
+    if(id){var old=dbGetById('players',id);if(old)item.echo=old.echo;dbUpdate('players',id,item)}
+    else dbCreate('players',item);
+  }
+  closeModal();renderView(currentView);
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════ */
+nav('campaign');
+</script>
 </body>
 </html>
